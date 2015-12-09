@@ -1,6 +1,3 @@
 [submodule "tsplk/salt"]
 	path = tsplk/salt
 	url = https://ftan@git.splunk.com/scm/sustain/salt.git
-[submodule "tsplk/terraform"]
-	path = tsplk/terraform
-	url = https://ftan@git.splunk.com/scm/~ftan/terraform-salty-splunk.git
