@@ -1,0 +1,3 @@
+[submodule "tsplk/salt"]
+	path = tsplk/salt
+	url = https://ftan@git.splunk.com/scm/sustain/salt.git
