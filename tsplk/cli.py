@@ -46,7 +46,7 @@ def up(project):
     variables = create_terraform_variables(project, ps)
 
     tr = TerraformSaltMaster(variables)
-    tr.up()
+    tr.up_master()
     tr.apply_minions()
 
 

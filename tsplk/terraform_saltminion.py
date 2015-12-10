@@ -3,6 +3,7 @@ import json
 import yaml
 import pycurl
 import time
+import click
 try:
     # python 3
     from urllib.parse import urlencode
@@ -98,6 +99,8 @@ def notify_when_finished(user, project_name, token):
     c.close()
 
 
+@click.command()
+@click.option()
 def main():
     """
 
@@ -121,11 +124,14 @@ def main():
 
     cmds = gen_provision_commands(prj_settings['splunk_architecture'])
 
+    # need to wait some time for minion connect to master
+    # todo detect minion is all connected
     time.sleep(30)
     for cmd in cmds:
         subprocess.call(cmd, shell=True)
 
-    notify_when_finished(tf_vars['username'], prj_settings['project_name'], hipchat_token)
+    notify_when_finished(
+        tf_vars['username'], prj_settings['project_name'], hipchat_token)
 
 
 if __name__ == '__main__':

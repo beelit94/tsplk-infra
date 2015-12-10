@@ -31,6 +31,7 @@ global_stetting_list = OrderedDict({
 
     'username': {
         'prompt_question': 'Please enter your user name'
+                           '(your employee id is suggested)'
     },
 
     'key_path': {
@@ -142,7 +143,10 @@ def _create_project(proj_name):
         tf_path = os.path.join(file_path, "terraform", "splunk.tf")
         shutil.copy(tf_path, project_dir)
 
-        deploy_minion_py = os.path.join(file_path, 'deploy_minion.py')
+        deploy_minion_py = os.path.join(file_path, 'terraform_saltminion.py')
+        shutil.copy(deploy_minion_py, project_dir)
+
+        deploy_minion_py = os.path.join(file_path, 'terraform.py')
         shutil.copy(deploy_minion_py, project_dir)
 
 
