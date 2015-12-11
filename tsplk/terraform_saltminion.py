@@ -17,6 +17,15 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 ch.setFormatter(formatter)
 log.addHandler(ch)
 
+# todo solution for this after push to other team
+hipchat_user_map = {
+    'ftan': 'FreddyTan',
+    'swang': 'SunnyWanYingWang',
+    'clin': 'WytheLin',
+    'hou': 'HenryOu',
+    'chuang': 'CamilleHuang'
+}
+
 try:
     # python 3
     from urllib.parse import urlencode
@@ -98,16 +107,24 @@ class TerraformSaltMinion(Terraform):
     def notify_when_finished(self, user, project_name, token):
         room = '1957'
         c = pycurl.Curl()
-        c.setopt(c.URL, 'https://hipchat.splunk.com/v2/room/%s/notification?auth_token=%s' % (room, token))
+        c.setopt(c.URL,
+                 'https://hipchat.splunk.com/v2/room/%s/notification?'
+                 'auth_token=%s' % (room, token))
 
-        post_data = {'color': 'red', 'message_format': 'text', 'message': '@%s %s is ready' % (user, project_name)}
-        # Form data must be provided already urlencoded.
+        try:
+            hipchat_user = hipchat_user_map[user]
+        except KeyError:
+            hipchat_user = user
+
+        post_data = {'color': 'red',
+                     'message_format': 'text',
+                     'message': '%s, project %s is ready' %
+                                (hipchat_user, project_name),
+                     'notify': True
+                     }
+
         postfields = urlencode(post_data)
-        # Sets request method to POST,
-        # Content-Type header to application/x-www-form-urlencoded
-        # and data to send in request body.
         c.setopt(c.POSTFIELDS, postfields)
-
         c.perform()
         c.close()
 
@@ -137,11 +154,10 @@ def up(tfvar, hipchat_token):
 
     tf = TerraformSaltMinion(variables=minion_tf_variables)
     ret_code, out, err = tf.apply()
-    # todo logging
+    log.debug(out)
+    log.debug(err)
     if ret_code != 0:
-        print out
-        print err
-        raise EnvironmentError
+        exit(1)
 
     prj_settings = read_project_setting_data()
     tf.assign_roles(prj_settings['roles_count'])
@@ -164,10 +180,17 @@ def destroy(tfvar):
 
     tf = TerraformSaltMinion(variables=minion_tf_variables)
     ret_code, out, err = tf.destroy()
-    # todo logging
+    log.debug(out)
+    log.debug(err)
     if ret_code != 0:
-        print out
-        print err
+        exit(1)
+
+
+@click.command()
+def is_up():
+    minion = TerraformSaltMinion()
+    minion.read_state()
+    click.echo(str(minion.is_any_aws_instance_alive()))
 
 
 @click.group()

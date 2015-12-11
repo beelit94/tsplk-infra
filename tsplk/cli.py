@@ -1,5 +1,5 @@
 import click
-from . import New, StateMachine, GlobalSetting, ProjectSetting,\
+from . import New, StateMachine, GlobalSetting, ProjectSetting, \
     ch_project_folder, project_root, global_stetting_list
 import os
 import shutil
@@ -13,6 +13,7 @@ def main():
     """This tool is to create splunk ready environment."""
     pass
 
+
 @click.command()
 def config():
     '''
@@ -24,6 +25,7 @@ def config():
         input_value = click.prompt(prompt, default=default)
         GlobalSetting.set_value(key, input_value)
 
+
 @click.command()
 def new():
     '''
@@ -34,59 +36,88 @@ def new():
     machine.run_all()
 
 
+def check_project_exist(project):
+    if not os.path.exists(os.path.join(project_root, project)):
+        click.secho('Project %s is not exist.' % project, fg='red')
+        click.echo('the available projects are:')
+        projects = [name for name in os.listdir(project_root)
+                    if os.path.isdir(os.path.join(project_root, name))]
+        projects_str = ', '.join(projects)
+        click.secho(projects_str, fg='yellow')
+        exit(1)
+
+
 @click.command()
-@click.argument("project")
-@click.option("--onlyminion", "-m", is_flag=True)
-def up(project, onlyminion):
+@click.argument("project", nargs=1)
+@click.option("--only-minion", "-m", is_flag=True,
+              help='if the master is up, only bring up the minions on master'
+                   'this is useful when you want to '
+                   'customized your salt files')
+def up(project, only_minion):
     '''
     bring up the machines of the given project
     '''
+    check_project_exist(project)
+
     ch_project_folder(project)
     ps = ProjectSetting(project)
 
     master_var = create_master_variables(project, ps)
     minion_var = create_minion_variables(project, ps)
-    t = TerraformSaltMaster(master_var, minion_var)
+    salt_master = TerraformSaltMaster(master_var, minion_var)
 
-    if onlyminion:
-        if t.is_master_up():
-            t.up_minion()
-            click.echo('we will send msg to Hipchat room tsplk when it ready')
-            return
-        else:
-            click.echo("master is not up, plz up the project first")
-            return
+    def wait_for_minions_msg():
+        click.echo('minion instances is still in process')
+        click.echo("we'll send a message to Hipchat room tsplk when it ready")
+
+    if only_minion and not salt_master.is_master_up():
+        click.secho("You can't only up minion when master is not up",
+                    fg='red')
+        return
+
+    if only_minion:
+        salt_master.up_minion()
+        wait_for_minions_msg()
+        return
 
     click.echo('start master...(this could take few minutes)')
     try:
-        t.up()
+        salt_master.up()
     except EnvironmentError as err:
-        click.echo('something wrong...')
+        click.secho('Salt master fail to start', fg='green')
         click.echo(err)
-    click.echo('master is started, the rest machine will start by master')
-    click.echo('we will send msg to Hipchat room tsplk when it ready')
+    click.echo('Salt master started successfully!',
+               color='green')
+    wait_for_minions_msg()
 
 
 @click.command()
-@click.argument("project")
+@click.argument("project", nargs=1)
 def status(project):
     '''
     Show the status of the machines of the given project
     '''
+    check_project_exist(project)
     ch_project_folder(project)
     ps = ProjectSetting(project)
 
-    variables = create_master_variables(project, ps)
+    master_var = create_master_variables(project, ps)
+    minion_var = create_minion_variables(project, ps)
+    salt_master = TerraformSaltMaster(master_var, minion_var)
 
-    tr = TerraformSaltMaster(variables)
-    instances = tr.get_minions_info()
-    for instance in instances:
-        click.echo(instance['name'] + ' ' + instance['role'] + ' ' + instance['info']['public_ip'])
+    if not salt_master.is_master_up():
+        click.echo('the project is not up')
+    info = salt_master.get_minions_info()
+    click.echo(info)
 
 
 @click.command()
 @click.argument("project")
-def destroy(project):
+@click.option("--only-minion", "-m", is_flag=True,
+              help='only destroy the salt minions'
+                   'this is useful when you want to '
+                   'debug salt files')
+def destroy(project, only_minion):
     '''
     Destroy the machines of the give project
     '''
@@ -95,9 +126,9 @@ def destroy(project):
 
     master_var = create_master_variables(project, ps)
     minion_var = create_minion_variables(project, ps)
-    t = TerraformSaltMaster(master_var, minion_var)
+    salt_master = TerraformSaltMaster(master_var, minion_var)
 
-    t.destroy()
+    salt_master.destroy()
 
 
 @click.command()
@@ -123,9 +154,10 @@ def version():
 
 @click.command()
 def list():
-    projects = [ name for name in os.listdir(project_root)
-                 if os.path.isdir(os.path.join(project_root, name)) ]
+    projects = [name for name in os.listdir(project_root)
+                if os.path.isdir(os.path.join(project_root, name))]
     click.echo(projects)
+
 
 @click.command()
 @click.argument("project")
@@ -146,7 +178,6 @@ def delete(project):
 @click.command()
 @click.argument("project")
 def ssh(project):
-
     ch_project_folder(project)
     ps = ProjectSetting(project)
 
@@ -181,8 +212,6 @@ def create_minion_variables(project, ps):
     variables.pop('splunk_architecture')
 
     return variables
-
-
 
 
 main.add_command(up)

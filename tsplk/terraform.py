@@ -1,6 +1,9 @@
 import subprocess
 import os
 import json
+import logging
+
+log = logging.getLogger('Terraform')
 
 
 class Terraform:
@@ -17,9 +20,9 @@ class Terraform:
         parameters = []
         parameters += self._generate_targets(targets)
         parameters += self._generate_var_string(variables)
-        # hard code 19 for splunk aws limit on us-west-2 region,
+        # hard code 30 for splunk aws limit on us-west-2 region,
         # todo move this to somewhere else
-        parameters += ['-parallelism=19']
+        parameters += ['-parallelism=30']
         parameters = \
             ['terraform', 'apply', '-state=%s' % self.state] + parameters
 
@@ -27,6 +30,8 @@ class Terraform:
         p = subprocess.Popen(
             cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         out, err = p.communicate()
+        log.debug(out)
+        log.debug(err)
         if p.returncode == 0:
             self.read_state()
 
@@ -40,8 +45,7 @@ class Terraform:
         parameters += self._generate_targets(targets)
         parameters += self._generate_var_string(variables)
         # hard code 19 for splunk aws limit on us-west-2 region,
-        # todo move this to somewhere else
-        parameters += ['-parallelism=19']
+        # todo move parallelism?
         parameters = \
             ['terraform', 'destroy', '-force', '-state=%s' % self.state] + \
             parameters
@@ -49,6 +53,8 @@ class Terraform:
         p = subprocess.Popen(
             cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         out, err = p.communicate()
+        log.debug(out)
+        log.debug(err)
         if p.returncode == 0:
             self.read_state()
 
@@ -79,13 +85,14 @@ class Terraform:
             with open(state) as f:
                 json_data = json.load(f)
             self.state_data = json_data
+            log.debug("state_data=%s" % str(self.state_data))
             return json_data
 
         return dict()
 
     def is_any_aws_instance_alive(self):
         if not os.path.exists(self.state):
-            # print("not exist")
+            log.debug("can't find %s " % self.state_data)
             return False
 
         self.read_state()
@@ -93,14 +100,14 @@ class Terraform:
             main_module = self._get_main_module()
             for resource_key, info in main_module['resources'].items():
                 if 'aws_instance' in resource_key:
-                    # print("exist aws")
+                    log.debug("%s is found when read state" % resource_key)
                     return True
             return False
         except KeyError as err:
-            # print(err)
+            log.debug(str(err))
             return False
         except TypeError as err:
-            # print(err)
+            log.debug(str(err))
             return False
 
     def _get_main_module(self):

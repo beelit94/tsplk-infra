@@ -4,7 +4,7 @@ from scp import SCPClient, SCPException
 import os
 import yaml
 
-minion_roles_map_file = 'minion_roles_map'
+
 minion_info_remote_path = 'minion_info'
 minion_info_local_path = 'remote_state'
 
@@ -34,21 +34,10 @@ class TerraformSaltMaster:
 
         ssh = self._ssh_connect()
 
-        if os.path.exists(minion_info_local_path):
-            return True
-
-        try:
-            with SCPClient(ssh.get_transport()) as scp:
-                scp.get(remote_path=minion_info_remote_path,
-                        local_path=minion_info_local_path)
-                # scp.get(remote_path=minion_roles_map_file,
-                #         local_path=minion_roles_map_file)
-
-            return True
-        except SCPException:
-            return False
-        finally:
-            ssh.close()
+        stdin, stdout, stderr = \
+            ssh.exec_command('python terraform_saltminion.py is_up')
+        ssh.close()
+        return bool(stdout.strip())
 
     def up_master(self):
         """
