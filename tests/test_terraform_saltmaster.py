@@ -1,4 +1,4 @@
-from tsplk.terraform_saltmaster import TerraformSaltMaster
+from tsplk.saltmaster_deployer import TerraformSaltMaster
 import pytest
 
 

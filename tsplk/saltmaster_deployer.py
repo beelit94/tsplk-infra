@@ -3,12 +3,12 @@ import paramiko
 from scp import SCPClient, SCPException
 import os
 import yaml
-
+import logging
 
 minion_info_remote_path = 'minion_info'
 minion_info_local_path = 'remote_state'
 
-# todo use logging instead of print
+log = logging.getLogger('TerraformSaltMaster')
 
 
 class TerraformSaltMaster:
@@ -35,9 +35,15 @@ class TerraformSaltMaster:
         ssh = self._ssh_connect()
 
         stdin, stdout, stderr = \
-            ssh.exec_command('python terraform_saltminion.py is_up')
+            ssh.exec_command('python saltminion_deployer.py is_up')
         ssh.close()
-        return bool(stdout.strip())
+        out = stdout.read()
+        print(out)
+        err = stderr.read()
+        print(err)
+        log.debug('is minion up return: %s %s', out, err)
+
+        return bool(out.strip())
 
     def up_master(self):
         """
@@ -65,7 +71,7 @@ class TerraformSaltMaster:
                        self.minion_variables['hipchat_token']
 
         # use tf var to pass variable value
-        cmd_str = 'nohup sudo python terraform_saltminion.py up %s > ' \
+        cmd_str = 'nohup sudo python saltminion_deployer.py up %s > ' \
                   'tsplk.log 2>&1 &' % vars_string
 
         ssh = self._ssh_connect()
@@ -118,7 +124,7 @@ class TerraformSaltMaster:
         vars_string = ''
         for key, value in self.minion_variables.items():
             vars_string += '--tfvar' + ' %s=%s ' % (key, value)
-        cmd = 'python terraform_saltminion.py destroy %s' % vars_string
+        cmd = 'python saltminion_deployer.py destroy %s' % vars_string
         stdin, stdout, stderr = ssh.exec_command(cmd)
         ret_code = stdout.channel.recv_exit_status()
         ssh.close()

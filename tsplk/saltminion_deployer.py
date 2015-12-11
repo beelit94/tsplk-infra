@@ -98,7 +98,7 @@ class TerraformSaltMinion(Terraform):
         with open(minion_info_file, 'w') as f:
             yaml.dump(minion_info, f, default_flow_style=False)
 
-    def run_orch_on_minions(self, splunk_architecture):
+    def run_orchestration(self, splunk_architecture):
         local = salt.client.LocalClient()
         local.cmd('*', 'saltutil.sync_all', [])
         subprocess.call("sudo salt-run state.orch orchestration.%s"
@@ -116,9 +116,9 @@ class TerraformSaltMinion(Terraform):
         except KeyError:
             hipchat_user = user
 
-        post_data = {'color': 'red',
+        post_data = {'color': 'random',
                      'message_format': 'text',
-                     'message': '%s, project %s is ready' %
+                     'message': '@%s, project %s is ready' %
                                 (hipchat_user, project_name),
                      'notify': True
                      }
@@ -162,7 +162,7 @@ def up(tfvar, hipchat_token):
     prj_settings = read_project_setting_data()
     tf.assign_roles(prj_settings['roles_count'])
 
-    tf.run_orch_on_minions(prj_settings['splunk_architecture'])
+    tf.run_orchestration(prj_settings['splunk_architecture'])
 
     tf.notify_when_finished(
         minion_tf_variables['username'],
@@ -199,6 +199,7 @@ def main():
 
 main.add_command(up)
 main.add_command(destroy)
+main.add_command(is_up)
 
 if __name__ == '__main__':
     main()

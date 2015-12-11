@@ -143,7 +143,7 @@ def _create_project(proj_name):
         tf_path = os.path.join(file_path, "terraform", "splunk.tf")
         shutil.copy(tf_path, project_dir)
 
-        deploy_minion_py = os.path.join(file_path, 'terraform_saltminion.py')
+        deploy_minion_py = os.path.join(file_path, 'saltminion_deployer.py')
         shutil.copy(deploy_minion_py, project_dir)
 
         deploy_minion_py = os.path.join(file_path, 'terraform.py')
@@ -244,16 +244,21 @@ class Platform(State):
 
     def run(self):
         platform_arr = [p.replace("_count", "") for p in project_setting]
-        prompt = "Please select the platform you want to use\n"
+        prompt = click.style("Please select the platform you want to use\n",
+                             fg='yellow')
 
-        for platform in platform_arr:
-            prompt = prompt + "({d:1d}) {p}\n".format(
+        for idx, platform in enumerate(platform_arr):
+            prompt = prompt + "  [{d:1d}] {p}\n".format(
                 d=platform_arr.index(platform), p=platform)
+
+        prompt += 'default is'
 
         index = click.prompt(prompt, type=int, default=0)
         platform = platform_arr[index]
-        click.echo(platform + " is selected")
         self.data['platform'] = platform
+
+        click.echo(click.style(platform, fg='green') + " is selected")
+        click.echo("")
 
     def next(self):
         return SplunkArchState(self.data)
@@ -265,15 +270,20 @@ class SplunkArchState(State):
         self.data = data
 
     def run(self):
-        prompt = "Please select the architecture you want to build\n"
+        prompt = click.style(
+            "Please select the architecture you want to build\n",
+            fg='yellow')
         for arch in splunk_architectures:
-            prompt = prompt + "({d:1d}) {p}\n".format(
+            prompt = prompt + "  [{d:1d}] {p}\n".format(
                 d=splunk_architectures.index(arch), p=arch)
 
+        prompt += 'default is'
         index = click.prompt(prompt, type=int, default=0)
         arch = splunk_architectures[index]
         self.data['splunk_architecture'] = arch
-        click.echo(arch + "is selected")
+
+        click.echo(click.style(arch, fg='green') + " is selected")
+        click.echo("")
 
     def next(self):
         arch = self.data['splunk_architecture']

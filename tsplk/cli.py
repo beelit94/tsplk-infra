@@ -3,10 +3,18 @@ from . import New, StateMachine, GlobalSetting, ProjectSetting, \
     ch_project_folder, project_root, global_stetting_list
 import os
 import shutil
-from terraform_saltmaster import TerraformSaltMaster
+from saltmaster_deployer import TerraformSaltMaster
 import subprocess
 import keyring
+import logging
+import sys
 
+log = logging.getLogger()
+ch = logging.StreamHandler(sys.stdout)
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+log.addHandler(ch)
 
 @click.group()
 def main():
@@ -121,6 +129,7 @@ def destroy(project, only_minion):
     '''
     Destroy the machines of the give project
     '''
+    check_project_exist(project)
     ch_project_folder(project)
     ps = ProjectSetting(project)
 
@@ -128,7 +137,19 @@ def destroy(project, only_minion):
     minion_var = create_minion_variables(project, ps)
     salt_master = TerraformSaltMaster(master_var, minion_var)
 
-    salt_master.destroy()
+    if not salt_master.is_master_up():
+        click.echo('Done.')
+        return
+
+    click.echo('destroying minions...')
+    salt_master.destroy_minion()
+
+    if only_minion:
+        return
+
+    click.echo('destroying master...')
+    salt_master.destroy_master()
+    click.echo('Done.')
 
 
 @click.command()
