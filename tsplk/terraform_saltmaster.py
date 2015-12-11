@@ -1,13 +1,11 @@
 from terraform import Terraform
 import paramiko
 from scp import SCPClient, SCPException
-import json
 import os
-import time
 import yaml
 
 minion_roles_map_file = 'minion_roles_map'
-minion_info_remote_path = 'terraform.tfstate'
+minion_info_remote_path = 'minion_info'
 minion_info_local_path = 'remote_state'
 
 # todo use logging instead of print
@@ -30,6 +28,7 @@ class TerraformSaltMaster:
         return self.tf.is_any_aws_instance_alive()
 
     def is_minions_up(self):
+        # todo check by python
         if not self.is_master_up():
             return False
 
@@ -42,8 +41,8 @@ class TerraformSaltMaster:
             with SCPClient(ssh.get_transport()) as scp:
                 scp.get(remote_path=minion_info_remote_path,
                         local_path=minion_info_local_path)
-                scp.get(remote_path=minion_roles_map_file,
-                        local_path=minion_roles_map_file)
+                # scp.get(remote_path=minion_roles_map_file,
+                #         local_path=minion_roles_map_file)
 
             return True
         except SCPException:
@@ -67,12 +66,17 @@ class TerraformSaltMaster:
         if not self.is_master_up():
             return
 
+        self.minion_variables['salt_master_ip'] = self._get_private_ip()
+
         vars_string = ''
-        for key, value in self.minion_variables:
-            vars_string += '-tfvar ' + '%s=%s' % (key, value)
+        for key, value in self.minion_variables.items():
+            vars_string += '--tfvar' + ' %s=%s ' % (key, value)
+
+        vars_string += ' --hipchat_token=%s' % \
+                       self.minion_variables['hipchat_token']
 
         # use tf var to pass variable value
-        cmd_str = 'nohup python terraform_saltminion.py up %s > ' \
+        cmd_str = 'nohup sudo python terraform_saltminion.py up %s > ' \
                   'tsplk.log 2>&1 &' % vars_string
 
         ssh = self._ssh_connect()
@@ -94,7 +98,7 @@ class TerraformSaltMaster:
         self.up_minion()
 
     def destroy(self):
-        if self.is_master_up():
+        if not self.is_master_up():
             return
         self.destroy_minion()
         self.destroy_master()
@@ -113,30 +117,6 @@ class TerraformSaltMaster:
         ssh.connect(self.get_public_ip(), username='ubuntu', pkey=k)
         return ssh
 
-    # def update_minion_variables(self):
-    #     minion_variables = {k: v for k, v in self.variables.items()}
-    #     minion_variables['key_path'] = minion_variables['key_name']
-    #     minion_variables['ubuntu_saltmaster_count'] = 0
-    #     minion_variables['salt_master_ip'] = self.get_private_ip()
-    #     minion_variables.pop('roles_count')
-    #     minion_variables.pop('splunk_architecture')
-    #     return minion_variables
-
-    # def apply_minions(self):
-    #     minion_variables = self.update_minion_variables()
-    #
-    #     with open('minion_terraform_variables', 'w') as f:
-    #         json.dump(minion_variables, f)
-    #
-    #     ssh = self._ssh_connect()
-    #
-    #     with SCPClient(ssh.get_transport()) as scp:
-    #         scp.put('minion_terraform_variables', remote_path='minion_terraform_variables')
-    #
-    #     cmd_str = 'nohup python terraform_saltminion.py > tsplk.log 2>&1 &'
-    #
-    #     self.ssh_execute_and_close(cmd_str, ssh)
-
     def destroy_minion(self):
         if not self.is_master_up():
             return
@@ -145,9 +125,14 @@ class TerraformSaltMaster:
             return
 
         ssh = self._ssh_connect()
-        cmd = 'python terraform_saltminion.py destroy'
+
+        vars_string = ''
+        for key, value in self.minion_variables.items():
+            vars_string += '--tfvar' + ' %s=%s ' % (key, value)
+        cmd = 'python terraform_saltminion.py destroy %s' % vars_string
         stdin, stdout, stderr = ssh.exec_command(cmd)
         ret_code = stdout.channel.recv_exit_status()
+        ssh.close()
         if ret_code != 0:
             raise EnvironmentError()
 
@@ -166,22 +151,13 @@ class TerraformSaltMaster:
                     scp.get(remote_path=minion_info_remote_path,
                             local_path=minion_info_local_path)
             except SCPException:
+                # todo logging
                 print('minions are not ready yet')
 
             sshcon.close()
 
         with open(minion_info_local_path) as f:
-            remote_data = json.load(f)
-
-        with open(minion_roles_map_file) as f:
-            minion_roles_map = yaml.load(f)
-
-        instances = []
-        for k, v in remote_data['modules'][0]['resources'].iteritems():
-            if 'aws_instance' in k:
-                instances.append({'name': k,
-                                  'info': v['primary']['attributes'],
-                                  'role': minion_roles_map[k]})
+            instances = yaml.load(f)
 
         return instances
 

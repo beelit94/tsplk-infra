@@ -5,7 +5,7 @@ import json
 
 class Terraform:
     def __init__(self, targets=None, state='terraform.tfstate', variables=None):
-        self.targets = [] if variables is None else targets
+        self.targets = [] if targets is None else targets
         self.state = state
         self.variables = dict() if variables is None else variables
         self.state_data = None
@@ -45,8 +45,14 @@ class Terraform:
         parameters = \
             ['terraform', 'destroy', '-force', '-state=%s' % self.state] + \
             parameters
-        subprocess.call(parameters)
-        self.read_state()
+        cmd = ' '.join(parameters)
+        p = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        out, err = p.communicate()
+        if p.returncode == 0:
+            self.read_state()
+
+        return p.returncode, out, err
 
     def refresh(self, targets=None, variables=None):
         variables = self.variables if variables is None else variables
@@ -58,8 +64,14 @@ class Terraform:
         parameters = \
             ['terraform', 'refresh', '-state=%s' % self.state] + \
             parameters
-        subprocess.call(parameters)
-        self.read_state()
+        cmd = ' '.join(parameters)
+        p = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        out, err = p.communicate()
+        if p.returncode == 0:
+            self.read_state()
+
+        return p.returncode, out, err
 
     def read_state(self, state=None):
         state = self.state if state is None else state
@@ -72,16 +84,23 @@ class Terraform:
         return dict()
 
     def is_any_aws_instance_alive(self):
-        self.refresh()
+        if not os.path.exists(self.state):
+            # print("not exist")
+            return False
+
+        self.read_state()
         try:
             main_module = self._get_main_module()
             for resource_key, info in main_module['resources'].items():
                 if 'aws_instance' in resource_key:
+                    # print("exist aws")
                     return True
             return False
-        except KeyError:
+        except KeyError as err:
+            # print(err)
             return False
-        except TypeError:
+        except TypeError as err:
+            # print(err)
             return False
 
     def _get_main_module(self):

@@ -3,7 +3,7 @@ from . import New, StateMachine, GlobalSetting, ProjectSetting,\
     ch_project_folder, project_root, global_stetting_list
 import os
 import shutil
-from terraform import TerraformSaltMaster
+from terraform_saltmaster import TerraformSaltMaster
 import subprocess
 import keyring
 
@@ -36,18 +36,35 @@ def new():
 
 @click.command()
 @click.argument("project")
-def up(project):
+@click.option("--onlyminion", "-m", is_flag=True)
+def up(project, onlyminion):
     '''
     bring up the machines of the given project
     '''
     ch_project_folder(project)
     ps = ProjectSetting(project)
 
-    variables = create_terraform_variables(project, ps)
+    master_var = create_master_variables(project, ps)
+    minion_var = create_minion_variables(project, ps)
+    t = TerraformSaltMaster(master_var, minion_var)
 
-    tr = TerraformSaltMaster(variables)
-    tr.up_master()
-    tr.apply_minions()
+    if onlyminion:
+        if t.is_master_up():
+            t.up_minion()
+            click.echo('we will send msg to Hipchat room tsplk when it ready')
+            return
+        else:
+            click.echo("master is not up, plz up the project first")
+            return
+
+    click.echo('start master...(this could take few minutes)')
+    try:
+        t.up()
+    except EnvironmentError as err:
+        click.echo('something wrong...')
+        click.echo(err)
+    click.echo('master is started, the rest machine will start by master')
+    click.echo('we will send msg to Hipchat room tsplk when it ready')
 
 
 @click.command()
@@ -59,7 +76,7 @@ def status(project):
     ch_project_folder(project)
     ps = ProjectSetting(project)
 
-    variables = create_terraform_variables(project, ps)
+    variables = create_master_variables(project, ps)
 
     tr = TerraformSaltMaster(variables)
     instances = tr.get_minions_info()
@@ -76,10 +93,11 @@ def destroy(project):
     ch_project_folder(project)
     ps = ProjectSetting(project)
 
-    variables = create_terraform_variables(project, ps)
+    master_var = create_master_variables(project, ps)
+    minion_var = create_minion_variables(project, ps)
+    t = TerraformSaltMaster(master_var, minion_var)
 
-    tr = TerraformSaltMaster(variables)
-    tr.destroy()
+    t.destroy()
 
 
 @click.command()
@@ -132,20 +150,39 @@ def ssh(project):
     ch_project_folder(project)
     ps = ProjectSetting(project)
 
-    variables = create_terraform_variables(project, ps)
-    t = TerraformSaltMaster(variables)
+    master_var = create_master_variables(project, ps)
+    minion_var = create_minion_variables(project, ps)
+    t = TerraformSaltMaster(master_var, minion_var)
     subprocess.call(['ssh', '-i', GlobalSetting.get_value('key_path'),
                      '-o', 'StrictHostKeyChecking=no',
                      'ubuntu@%s' % t.get_public_ip()])
 
 
-def create_terraform_variables(project, ps):
+def create_master_variables(project, ps):
     variables = dict()
     variables.update(GlobalSetting.read_data())
     variables.update(ps.read_data())
     variables.update({'project_name': project})
-    variables['roles_count'] = ''
+    variables.pop('roles_count')
     return variables
+
+
+def create_minion_variables(project, ps):
+    variables = dict()
+    variables.update(GlobalSetting.read_data())
+    variables.update(ps.read_data())
+    variables.update({'project_name': project})
+
+    variables['key_path'] = variables['key_name']
+    variables['ubuntu_saltmaster_count'] = 0
+    variables['salt_master_ip'] = None
+    variables.update({'project_name': project})
+    variables.pop('roles_count')
+    variables.pop('splunk_architecture')
+
+    return variables
+
+
 
 
 main.add_command(up)

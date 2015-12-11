@@ -4,6 +4,19 @@ import yaml
 import pycurl
 import time
 import click
+import re
+from terraform import Terraform
+import salt.client
+import logging
+import sys
+
+log = logging.getLogger()
+ch = logging.StreamHandler(sys.stdout)
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+log.addHandler(ch)
+
 try:
     # python 3
     from urllib.parse import urlencode
@@ -14,7 +27,89 @@ except ImportError:
 minion_info_path = 'terraform.tfstate'
 project_setting_file = 'settings.yml'
 terraform_variables = 'minion_terraform_variables'
-minion_roles_map_file = 'minion_roles_map'
+minion_info_file = 'minion_info'
+
+
+class TerraformSaltMinion(Terraform):
+    def generate_minion_info(self):
+        pass
+
+    @staticmethod
+    def retry_minion(local, minion, command, args):
+        retry_count = 5
+        for i in range(0, retry_count):
+            result = local.cmd(minion, command, args)
+            if result:
+                return result
+            time.sleep(1)
+            log.debug('%s is not ready, retry...' % minion)
+
+        raise EnvironmentError("Can't connect to %s" % minion)
+
+    def assign_roles(self, roles):
+        '''
+        :param roles: ex. roles = {'role1': count1, 'role2': count2}
+        :param instances:
+        :return:
+        '''
+        instances = self.get_aws_instances()
+        instances_list = []
+        for name, info in instances.items():
+            instances_list.append({'name': name,
+                                   'info': info['primary']['attributes']})
+
+        total = 0
+        for role, count in roles.iteritems():
+            total += count
+
+        assert total == len(instances), 'instance is not fully up, ' \
+                                        'check tsplk.log'
+
+        minion_info = []
+        for role, count in roles.iteritems():
+            ready_to_assign = instances_list[:count]
+            instances_list = instances_list[count:]
+
+            for minion in ready_to_assign:
+                minion_id = minion['info']['tags.Name']
+                local = salt.client.LocalClient()
+                result = self.retry_minion(
+                    local, minion_id, 'grains.get', ['host'])
+
+                host = result[minion_id]
+
+                local.cmd(minion_id, 'grains.append', ['role', role])
+
+                minion_info.append({'host': host,
+                                    'role': role,
+                                    'minion_id': str(minion_id),
+                                    'ip': str(minion['info']['public_ip']),
+                                    })
+
+        with open(minion_info_file, 'w') as f:
+            yaml.dump(minion_info, f, default_flow_style=False)
+
+    def run_orch_on_minions(self, splunk_architecture):
+        local = salt.client.LocalClient()
+        local.cmd('*', 'saltutil.sync_all', [])
+        subprocess.call("sudo salt-run state.orch orchestration.%s"
+                        % splunk_architecture, shell=True)
+
+    def notify_when_finished(self, user, project_name, token):
+        room = '1957'
+        c = pycurl.Curl()
+        c.setopt(c.URL, 'https://hipchat.splunk.com/v2/room/%s/notification?auth_token=%s' % (room, token))
+
+        post_data = {'color': 'red', 'message_format': 'text', 'message': '@%s %s is ready' % (user, project_name)}
+        # Form data must be provided already urlencoded.
+        postfields = urlencode(post_data)
+        # Sets request method to POST,
+        # Content-Type header to application/x-www-form-urlencoded
+        # and data to send in request body.
+        c.setopt(c.POSTFIELDS, postfields)
+
+        c.perform()
+        c.close()
 
 
 def read_project_setting_data():
@@ -24,115 +119,65 @@ def read_project_setting_data():
     return data
 
 
-def get_minions_info():
-    with open(minion_info_path) as f:
-        remote_data = json.load(f)
-
-    instances = []
-    for k, v in remote_data['modules'][0]['resources'].iteritems():
-        if 'aws_instance' in k:
-            instances.append({'name': k, 'info': v['primary']['attributes']})
-
-    return instances
-
-
 def read_terraform_variables():
     with open(terraform_variables) as f:
         gs = json.load(f)
     return gs
 
 
-def gen_roles_salt_command(roles):
-    '''
-    :param roles: ex. roles = {'role1': count1, 'role2': count2}
-    :param instances:
-    :return:
-    '''
-    instances = get_minions_info()
+@click.command()
+@click.option('--tfvar', '-t', multiple=True)
+@click.option('--hipchat_token', '-h')
+def up(tfvar, hipchat_token):
+    minion_tf_variables = dict()
+    for v in tfvar:
+        rex = r'^(?P<key>.*)=(?P<value>.*)$'
+        result = re.match(rex, v)
+        minion_tf_variables.update({result.group('key'): result.group('value')})
 
-    total = 0
-    for role, count in roles.iteritems():
-        total += count
+    tf = TerraformSaltMinion(variables=minion_tf_variables)
+    ret_code, out, err = tf.apply()
+    # todo logging
+    if ret_code != 0:
+        print out
+        print err
+        raise EnvironmentError
 
-    assert total == len(instances)
+    prj_settings = read_project_setting_data()
+    tf.assign_roles(prj_settings['roles_count'])
 
-    commands = []
-    roles_mapping = dict()
-    for role, count in roles.iteritems():
-        ready_to_assign = instances[:count]
-        instances = instances[count:]
+    tf.run_orch_on_minions(prj_settings['splunk_architecture'])
 
-        for minion in ready_to_assign:
-            minion_id = minion['info']['tags.Name']
-            commands.append("sudo salt %s grains.append role %s" % (minion_id, role))
-            roles_mapping[str(minion['name'])] = str(role)
-
-    with open(minion_roles_map_file, 'w') as f:
-        yaml.dump(roles_mapping, f, default_flow_style=False)
-
-    return commands
-
-
-def gen_provision_commands(splunk_architecture):
-    cmds = [
-        "sudo salt '*' saltutil.sync_all",
-        "sudo salt-run state.orch orchestration.%s" % splunk_architecture
-    ]
-
-    return cmds
-
-
-def notify_when_finished(user, project_name, token):
-    room = '1957'
-    c = pycurl.Curl()
-    c.setopt(c.URL, 'https://hipchat.splunk.com/v2/room/%s/notification?auth_token=%s' % (room, token))
-
-    post_data = {'color': 'red', 'message_format': 'text', 'message': '@%s %s is ready' % (user, project_name)}
-    # Form data must be provided already urlencoded.
-    postfields = urlencode(post_data)
-    # Sets request method to POST,
-    # Content-Type header to application/x-www-form-urlencoded
-    # and data to send in request body.
-    c.setopt(c.POSTFIELDS, postfields)
-
-    c.perform()
-    c.close()
+    tf.notify_when_finished(
+        minion_tf_variables['username'],
+        prj_settings['project_name'], hipchat_token)
 
 
 @click.command()
-@click.option()
+@click.option('--tfvar', '-t', multiple=True)
+def destroy(tfvar):
+    minion_tf_variables = dict()
+    for v in tfvar:
+        rex = r'^(?P<key>.*)=(?P<value>.*)$'
+        result = re.match(rex, v)
+        minion_tf_variables.update({result.group('key'): result.group('value')})
+
+    tf = TerraformSaltMinion(variables=minion_tf_variables)
+    ret_code, out, err = tf.destroy()
+    # todo logging
+    if ret_code != 0:
+        print out
+        print err
+
+
+@click.group()
 def main():
-    """
+    pass
 
-    :rtype: object
-    """
-
-    tf_vars = read_terraform_variables()
-    hipchat_token = tf_vars['hipchat_token']
-    tf_vars.pop('hipchat_token')
-    prj_settings = read_project_setting_data()
-
-    str_t = []
-    for k, v in tf_vars.iteritems():
-        str_t += ['-var'] + ["%s=%s" % (k, v)]
-
-    subprocess.call(['./terraform/terraform', 'apply'] + str_t)
-    cmds = gen_roles_salt_command(prj_settings['roles_count'])
-
-    for cmd in cmds:
-        subprocess.call(cmd, shell=True)
-
-    cmds = gen_provision_commands(prj_settings['splunk_architecture'])
-
-    # need to wait some time for minion connect to master
-    # todo detect minion is all connected
-    time.sleep(30)
-    for cmd in cmds:
-        subprocess.call(cmd, shell=True)
-
-    notify_when_finished(
-        tf_vars['username'], prj_settings['project_name'], hipchat_token)
-
+main.add_command(up)
+main.add_command(destroy)
 
 if __name__ == '__main__':
     main()
+
+
