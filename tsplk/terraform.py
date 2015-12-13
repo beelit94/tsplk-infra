@@ -3,7 +3,7 @@ import os
 import json
 import logging
 
-log = logging.getLogger('Terraform')
+log = logging.getLogger()
 
 
 class Terraform:
@@ -27,15 +27,19 @@ class Terraform:
             ['terraform', 'apply', '-state=%s' % self.state] + parameters
 
         cmd = ' '.join(parameters)
+        return self._run_cmd(cmd)
+
+    def _run_cmd(self, cmd):
+        log.debug('command: ' + cmd)
         p = subprocess.Popen(
             cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         out, err = p.communicate()
-        log.debug(out)
-        log.debug(err)
-        if p.returncode == 0:
+        ret_code = p.returncode
+        log.debug('output: ' + out)
+        if ret_code == 0:
+            log.debug('error: ' + err)
             self.read_state()
-
-        return p.returncode, out, err
+        return ret_code, out, err
 
     def destroy(self, targets=None, variables=None):
         variables = self.variables if variables is None else variables
@@ -50,15 +54,7 @@ class Terraform:
             ['terraform', 'destroy', '-force', '-state=%s' % self.state] + \
             parameters
         cmd = ' '.join(parameters)
-        p = subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        out, err = p.communicate()
-        log.debug(out)
-        log.debug(err)
-        if p.returncode == 0:
-            self.read_state()
-
-        return p.returncode, out, err
+        return self._run_cmd(cmd)
 
     def refresh(self, targets=None, variables=None):
         variables = self.variables if variables is None else variables
@@ -71,13 +67,7 @@ class Terraform:
             ['terraform', 'refresh', '-state=%s' % self.state] + \
             parameters
         cmd = ' '.join(parameters)
-        p = subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        out, err = p.communicate()
-        if p.returncode == 0:
-            self.read_state()
-
-        return p.returncode, out, err
+        return self._run_cmd(cmd)
 
     def read_state(self, state=None):
         state = self.state if state is None else state
@@ -91,6 +81,7 @@ class Terraform:
         return dict()
 
     def is_any_aws_instance_alive(self):
+        self.refresh()
         if not os.path.exists(self.state):
             log.debug("can't find %s " % self.state_data)
             return False
@@ -102,6 +93,7 @@ class Terraform:
                 if 'aws_instance' in resource_key:
                     log.debug("%s is found when read state" % resource_key)
                     return True
+            log.debug("no aws_instance found in resource key")
             return False
         except KeyError as err:
             log.debug(str(err))

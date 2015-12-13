@@ -45,7 +45,16 @@ class TerraformSaltMinion(Terraform):
 
     @staticmethod
     def retry_minion(local, minion, command, args):
-        retry_count = 5
+        """
+        need to retry command since sometimes the minion is not connect to
+        master yet
+        :param local:
+        :param minion:
+        :param command:
+        :param args:
+        :return:
+        """
+        retry_count = 10
         for i in range(0, retry_count):
             result = local.cmd(minion, command, args)
             if result:

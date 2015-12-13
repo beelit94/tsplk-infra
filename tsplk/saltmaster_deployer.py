@@ -4,11 +4,12 @@ from scp import SCPClient, SCPException
 import os
 import yaml
 import logging
+import json
 
 minion_info_remote_path = 'minion_info'
 minion_info_local_path = 'remote_state'
 
-log = logging.getLogger('TerraformSaltMaster')
+log = logging.getLogger()
 
 
 class TerraformSaltMaster:
@@ -25,25 +26,52 @@ class TerraformSaltMaster:
         )
 
     def is_master_up(self):
+        """
+        This function takes time, suggest store the value instead of
+        re-calling it if you know your status is still the same
+        :return:
+        """
         return self.tf.is_any_aws_instance_alive()
 
     def is_minions_up(self):
-        # todo check by python
         if not self.is_master_up():
+            log.debug('master is not up')
             return False
 
         ssh = self._ssh_connect()
 
+        cmd = 'cat terraform.tfstate'
         stdin, stdout, stderr = \
-            ssh.exec_command('python saltminion_deployer.py is_up')
-        ssh.close()
-        out = stdout.read()
-        print(out)
-        err = stderr.read()
-        print(err)
-        log.debug('is minion up return: %s %s', out, err)
+            ssh.exec_command(cmd)
 
-        return bool(out.strip())
+        out = stdout.read()
+        err = stderr.read()
+        ret_code = stdout.channel.recv_exit_status()
+        data = json.loads(out)
+        ssh.close()
+
+        log.debug('cmd: ' + cmd)
+        log.debug('out: ' + out)
+        if ret_code != 0:
+            log.debug('err: ' + err)
+            return False
+
+        if data is None:
+            log.error('responsed data is not in json format!')
+            log.error('data : ' + data)
+            return False
+
+        try:
+            resources = data['modules'][0]['resources']
+            for k, v in resources.iteritems():
+                if 'aws_instance' in k:
+                    log.debug(k + ' is up')
+                    return True
+        except KeyError as err:
+            log.debug(err)
+            return False
+        finally:
+            ssh.close()
 
     def up_master(self):
         """
@@ -51,7 +79,7 @@ class TerraformSaltMaster:
         :return: nothing
         """
         if self.is_master_up():
-            print('master is already up')
+            log.debug('master is already up')
             return
         ret_code, out, err = self.tf.apply()
         if ret_code != 0:
@@ -76,16 +104,23 @@ class TerraformSaltMaster:
 
         ssh = self._ssh_connect()
         stdin, stdout, stderr = ssh.exec_command(cmd_str)
+        out = stdout.read()
+        err = stderr.read()
         ret_code = stdout.channel.recv_exit_status()
+        log.debug(out)
+        log.debug(err)
         ssh.close()
         if ret_code != 0:
-            raise EnvironmentError(stdout + stderr)
+            raise EnvironmentError(out + err)
 
     def up(self):
-        if self.is_minions_up():
+        is_minion_up = self.is_minions_up()
+        is_master_up = self.is_master_up()
+
+        if is_minion_up:
             return
 
-        if self.is_master_up() and not self.is_minions_up():
+        if is_master_up and not is_minion_up:
             self.up_minion()
             return
 
@@ -124,32 +159,42 @@ class TerraformSaltMaster:
         vars_string = ''
         for key, value in self.minion_variables.items():
             vars_string += '--tfvar' + ' %s=%s ' % (key, value)
-        cmd = 'python saltminion_deployer.py destroy %s' % vars_string
+        cmd = 'sudo python saltminion_deployer.py destroy %s' % vars_string
         stdin, stdout, stderr = ssh.exec_command(cmd)
+        out = stdout.read()
+        err = stderr.read()
+
+        log.debug('cmd: ' + cmd)
+        log.debug('out: ' + out)
+
         ret_code = stdout.channel.recv_exit_status()
         ssh.close()
+
         if ret_code != 0:
-            raise EnvironmentError()
+            log.debug('err: ' + err)
+            raise EnvironmentError(err)
 
         if os.path.exists(minion_info_local_path):
             os.remove(minion_info_local_path)
 
     def get_minions_info(self):
+        """
+
+        :return: in dict
+        """
         if not self.is_minions_up():
-            return
+            return None
 
-        if not os.path.exists(minion_info_local_path):
-            sshcon = self._ssh_connect()
-
-            try:
-                with SCPClient(sshcon.get_transport()) as scp:
-                    scp.get(remote_path=minion_info_remote_path,
-                            local_path=minion_info_local_path)
-            except SCPException:
-                # todo logging
-                print('minions are not ready yet')
-
-            sshcon.close()
+        ssh = self._ssh_connect()
+        try:
+            with SCPClient(ssh.get_transport()) as scp:
+                scp.get(remote_path=minion_info_remote_path,
+                        local_path=minion_info_local_path)
+        except SCPException:
+            # todo logging
+            print('minions are not ready yet')
+        finally:
+            ssh.close()
 
         with open(minion_info_local_path) as f:
             instances = yaml.load(f)
