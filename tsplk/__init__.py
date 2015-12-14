@@ -227,7 +227,8 @@ class SplunkCommonSettingState(State):
         self.data = data
 
     def run(self):
-        prompt = "Plese enter the Splunk version you want to test"
+        prompt = ("Plese enter the Splunk version you want, "
+              "or the url to download the Splunk package")
         splunk_version = str(click.prompt(prompt))
         file_path = pillar_path_template.format(
             p=self.data['project_name'], s="splunk.sls")
