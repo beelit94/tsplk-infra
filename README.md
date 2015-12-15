@@ -31,8 +31,8 @@ edit _~/.pip/pip.conf and add the following (if it doesn't exist please create o
         [install]
         extra-index-url = https://pypi.fury.io/m4dy9Unh83NCJdyGHkzY/beelit94/
 
-## how to install tsplk command
-### simply run
+### How to install tsplk command
+#### simply run
 
 	pipsi install tsplk
 
