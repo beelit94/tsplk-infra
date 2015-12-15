@@ -56,19 +56,19 @@ to view all the machine you created
 
 to access master
     
-        tsplk ssh <project_name>
+    tsplk ssh <project_name>
     
 access the Splunk instance
     
-        tsplk ssh <project_name> <minion_id>
+    tsplk ssh <project_name> <minion_id>
 
 ### How to destroy the VM you created
 
 to destroy all the VM you created, run
 	
-	    tsplk destroy <project_name>
+	tsplk destroy <project_name>
 	
 to delete your project from project list, use
 
-        tsplk delete <project_name>
+    tsplk delete <project_name>
 
