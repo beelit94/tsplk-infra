@@ -4,7 +4,7 @@ My Tool does one thing, and one thing well.
 from distutils.core import setup
 import os
 
-dependencies = ['click', 'pyyaml', 'python-vagrant', 'keyring', 'paramiko', 'scp']
+dependencies = ['click', 'pyyaml', 'python-vagrant', 'keyring', 'paramiko', 'scp', 'tabulate']
 module_name = 'tsplk'
 
 
