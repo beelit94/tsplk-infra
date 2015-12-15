@@ -25,8 +25,8 @@ download and install from [here](https://www.vagrantup.com/downloads.html)
         brew install caskroom/cask/brew-cask
         brew cask install terraform
 
-5. _edit pip conf file_
-edit _~/.pip/pip.conf and add the following (if it doesn't exist please create one)
+5. _edit pip conf file_  
+edit `~/.pip/pip.conf` and add the following (if it doesn't exist please create one)
     
         [install]
         extra-index-url = https://pypi.fury.io/m4dy9Unh83NCJdyGHkzY/beelit94/
@@ -42,8 +42,8 @@ edit _~/.pip/pip.conf and add the following (if it doesn't exist please create o
 1. Simply use `tsplk new` and follow the instruction
 
 2. Use `tsplk up` to bring up the project you just create
-
-    tsplk up <project_name>
+    
+        tsplk up <project_name>
 
 ### Check the status of the VM you defined
 run following command under project's folder
