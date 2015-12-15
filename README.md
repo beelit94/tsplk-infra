@@ -15,21 +15,21 @@ Here are [installation instructions](https://github.com/mitsuhiko/pipsi#readme).
 2. _vagrant_  
 download and install from [here](https://www.vagrantup.com/downloads.html)
 
-3. _vagrant aws plugin_  
+3. _vagrant plugins_  
     
-    vagrant plugin install vagrant-aws
-    vagrant plugin install vagrant-winrm-syncedfolders
+        vagrant plugin install vagrant-aws
+        vagrant plugin install vagrant-winrm-syncedfolders
 
 4. _terraform_
 
-    brew install caskroom/cask/brew-cask
-    brew cask install terraform
+        brew install caskroom/cask/brew-cask
+        brew cask install terraform
 
 5. edit pip conf file
 edit _~/.pip/pip.conf (if it doesn't exist please create one)
     
-    [install]
-    extra-index-url = https://pypi.fury.io/m4dy9Unh83NCJdyGHkzY/beelit94/
+        [install]
+        extra-index-url = https://pypi.fury.io/m4dy9Unh83NCJdyGHkzY/beelit94/
 
 ## how to install tsplk command
 ### simply run
