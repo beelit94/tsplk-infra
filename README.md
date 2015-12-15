@@ -1,6 +1,8 @@
 # tsplk
 
-tsplk is a tool to wrap vagrant 
+It is a command line tool that could let you create Splunk environment for testing.  
+The purpose of this tool is that for QA/DEV could get a testable Splunk without knowing  
+Vagrant, AWS, Salt, Terraform.
 
 
 # Installation
@@ -14,15 +16,16 @@ Here are [installation instructions](https://github.com/mitsuhiko/pipsi#readme).
 download and install from [here](https://www.vagrantup.com/downloads.html)
 
 3. _vagrant aws plugin_  
-`vagrant plugin install vagrant-aws`
-`vagrant plugin install vagrant-winrm-syncedfolders`
+    
+    vagrant plugin install vagrant-aws
+    vagrant plugin install vagrant-winrm-syncedfolders
 
 4. _terraform_
-`brew install caskroom/cask/brew-cask`
-`brew cask install terraform`
+
+    brew install caskroom/cask/brew-cask
+    brew cask install terraform
 
 5. edit pip conf file
-
 edit _~/.pip/pip.conf (if it doesn't exist please create one)
     
     [install]
