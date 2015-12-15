@@ -25,8 +25,8 @@ download and install from [here](https://www.vagrantup.com/downloads.html)
         brew install caskroom/cask/brew-cask
         brew cask install terraform
 
-5. edit pip conf file
-edit _~/.pip/pip.conf (if it doesn't exist please create one)
+5. _edit pip conf file_
+edit _~/.pip/pip.conf and add the following (if it doesn't exist please create one)
     
         [install]
         extra-index-url = https://pypi.fury.io/m4dy9Unh83NCJdyGHkzY/beelit94/
