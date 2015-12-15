@@ -38,6 +38,9 @@ class TerraformSaltMaster:
             log.debug('master is not up')
             return False
 
+        if os.path.exists(minion_info_local_path):
+            return True
+
         ssh = self._ssh_connect()
 
         cmd = 'cat terraform.tfstate'
@@ -185,6 +188,11 @@ class TerraformSaltMaster:
         if not self.is_minions_up():
             return None
 
+        if os.path.exists(minion_info_local_path):
+            with open(minion_info_local_path) as f:
+                instances = yaml.load(f)
+            return instances
+
         ssh = self._ssh_connect()
         try:
             with SCPClient(ssh.get_transport()) as scp:
@@ -193,6 +201,7 @@ class TerraformSaltMaster:
         except SCPException:
             # todo logging
             print('minions are not ready yet')
+            return None
         finally:
             ssh.close()
 
