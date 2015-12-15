@@ -79,6 +79,11 @@ resource "aws_instance" "windows-2012-r2" {
     timeout = "10m"
   }
 
+  ebs_block_device {
+    device_name = "/dev/sda1"
+    volume_size = "50"
+  }
+
   provisioner "local-exec" {
     command = "sleep 300"
   }
@@ -115,6 +120,11 @@ resource "aws_instance" "windows-2008-r2" {
     user = "Administrator"
     password = "${var.rdp_password}"
     timeout = "10m"
+  }
+
+  ebs_block_device {
+    device_name = "/dev/sda1"
+    volume_size = "50"
   }
 
   provisioner "local-exec" {
@@ -156,6 +166,11 @@ resource "aws_instance" "ubuntu-1404" {
       timeout = "10m"
   }
 
+  ebs_block_device {
+    device_name = "/dev/sda1"
+    volume_size = "50"
+  }
+
   provisioner "remote-exec" {
     inline = [
       # splunk forwarder
@@ -189,7 +204,6 @@ resource "aws_instance" "ubuntu-salt-master" {
     device_name = "/dev/sda1"
     volume_size = "50"
   }
-
 
   provisioner "file" {
     source = "."
