@@ -179,14 +179,31 @@ def destroy(project, only_minion):
 
 @click.command()
 @click.argument("project", nargs=1, type=click.Choice(projects))
-def browse(project):
+@click.argument("minion", nargs=-1)
+def browse(project, minion):
     '''
     '''
-    get_environment_ready(project)
-    os.chdir(os.path.join(project_root, project))
-    v = vagrant.Vagrant(env=os.environ)
-    host = v.hostname()
-    subprocess.call(["open", "http://%s:8000" % host])
+    ch_project_folder(project)
+    ps = ProjectSetting(project)
+
+    master_var = create_master_variables(project, ps)
+    minion_var = create_minion_variables(project, ps)
+    salt_master = TerraformSaltMaster(master_var, minion_var)
+
+    if len(minion) == 1:
+        minion_to_be_connected = minion[0]
+        info = salt_master.get_minions_info()
+        for i in info:
+
+            if i['minion_id'] == minion_to_be_connected:
+                subprocess.call(["open", "http://%s:8000" % i['ip']])
+                return
+        click.echo('minion not exist')
+    elif len(minion) == 1:
+        click.echo('give at least one minion')
+    else:
+        click.echo('you could only connect to one minion at a time')
+
 
 
 @click.command()
