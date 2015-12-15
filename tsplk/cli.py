@@ -199,7 +199,7 @@ def browse(project, minion):
                 subprocess.call(["open", "http://%s:8000" % i['ip']])
                 return
         click.echo('minion not exist')
-    elif len(minion) == 1:
+    elif len(minion) == 0:
         click.echo('give at least one minion')
     else:
         click.echo('you could only connect to one minion at a time')
