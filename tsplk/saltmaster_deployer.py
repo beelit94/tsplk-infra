@@ -193,6 +193,7 @@ class TerraformSaltMaster:
         except SCPException:
             # todo logging
             print('minions are not ready yet')
+            return None
         finally:
             ssh.close()
 
