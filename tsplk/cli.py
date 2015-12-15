@@ -13,6 +13,9 @@ log = logging.getLogger()
 projects = [name for name in os.listdir(project_root)
             if os.path.isdir(os.path.join(project_root, name))]
 
+if not os.path.isdir(project_root):
+    os.mkdir(project_root)
+
 
 class ClickStream(object):
     def write(self, string):
