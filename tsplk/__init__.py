@@ -292,6 +292,8 @@ class SplunkArchState(State):
             return IndexerCluster(self.data)
         elif "single_indexer" == arch:
             return SingleIndexer(self.data)
+        elif "searchhead_cluster" == arch:
+            return SearchHeadCluster(self.data)
 
 
 class SingleIndexer(State):
@@ -384,3 +386,49 @@ class IndexerCluster(State):
             p=self.data['project_name'], s="indexer_cluster.sls")
         update_sls(sls, {'replication_factor': replication_factor,
                          'search_factor': search_factor})
+
+
+class SearchHeadCluster(State):
+
+    '''
+    This stats stands for configuring a splunk indexer cluster
+    '''
+
+    def __init__(self, data):
+        '''
+        '''
+        self.data = data
+        self.data['roles_count'] = {}
+        self.data['roles_count']['splunk-shcluster-deployer'] = 1
+
+    def dump_settings(self):
+        '''
+        dump settings to settings.yml
+        '''
+        # write into settings.yml
+        settings = os.path.join(
+            settings_path_template.format(p=self.data['project_name']))
+        for platform in project_setting:
+            if self.data['platform'] in platform:
+                self.data[platform] = (
+                    self.data['roles_count']['splunk-shcluster-member'] + 1)
+            else:
+                self.data[platform] = 0
+
+        with open(settings, "w") as yml_file:
+            yaml.dump(self.data, yml_file, default_flow_style=False)
+
+    def run(self):
+        prompt = "How many members do you want?"
+        self.data['roles_count']['splunk-shcluster-member'] = (
+            click.prompt(prompt, type=int, default=2))
+
+        # write into settings.yml
+        self.dump_settings()
+
+        prompt = "Replication factor:"
+        replication_factor = click.prompt(prompt, type=int, default=2)
+
+        sls = pillar_path_template.format(
+            p=self.data['project_name'], s="searchhead_cluster.sls")
+        update_sls(sls, {'replication_factor': replication_factor})
