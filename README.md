@@ -10,11 +10,9 @@ Vagrant, AWS, Salt, Terraform.
 ### Prerequsition
 1. _pipsi_
 
-
-        curl https://raw.githubusercontent.com/mitsuhiko/pipsi/master/get-pipsi.py | python
+         curl https://raw.githubusercontent.com/mitsuhiko/pipsi/master/get-pipsi.py | python
 
 2. _homebrew_
-
 
         ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 
