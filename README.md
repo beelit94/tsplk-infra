@@ -70,3 +70,7 @@ to delete your project from project list, use
 
     tsplk delete <project_name>
 
+
+# Examples
+### Indexer clustering
+
