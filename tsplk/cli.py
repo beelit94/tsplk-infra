@@ -169,8 +169,8 @@ def destroy(project, only_minion):
         click.echo('Done.')
         return
 
-    click.echo('destroying minions...')
-    salt_master.destroy_minion()
+    # click.echo('destroying minions...')
+    # salt_master.destroy_minion()
 
     if only_minion:
         return

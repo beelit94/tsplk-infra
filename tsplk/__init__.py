@@ -343,8 +343,8 @@ class IndexerCluster(State):
         '''
         '''
         self.data = data
-        self.data['roles_count'] = {}
-        self.data['roles_count']['splunk-cluster-master'] = 1
+        self.data['roles_count'] = []
+        self.data['roles_count'].append(['splunk-cluster-master'])
 
     def dump_settings(self):
         '''
@@ -355,9 +355,7 @@ class IndexerCluster(State):
             settings_path_template.format(p=self.data['project_name']))
         for platform in project_setting:
             if self.data['platform'] in platform:
-                self.data[platform] = (
-                    self.data['roles_count']['splunk-cluster-slave'] +
-                    self.data['roles_count']['splunk-cluster-searchhead'] + 1)
+                self.data[platform] = len(self.data['roles_count'])
             else:
                 self.data[platform] = 0
 
@@ -366,12 +364,14 @@ class IndexerCluster(State):
 
     def run(self):
         prompt = "How many slaves do you want?"
-        self.data['roles_count']['splunk-cluster-slave'] = (
-            click.prompt(prompt, type=int, default=2))
+        number_of_slaves = click.prompt(prompt, type=int, default=2)
+        for i in range(number_of_slaves):
+            self.data['roles_count'].append(['splunk-cluster-slave'])
 
         prompt = "How many search heads do you want?"
-        self.data['roles_count']['splunk-cluster-searchhead'] = (
-            click.prompt(prompt, type=int, default=2))
+        number_of_searhheads = click.prompt(prompt, type=int, default=2)
+        for i in range(number_of_searhheads):
+            self.data['roles_count'].append(['splunk-cluster-searchhead'])
 
         # write into settings.yml
         self.dump_settings()
