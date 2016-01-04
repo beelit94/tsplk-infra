@@ -402,6 +402,7 @@ class SearchHeadCluster(State):
         self.data = data
         self.data['roles_count'] = []
         self.data['roles_count'].append(['splunk-shcluster-deployer'])
+        self.data['roles_count'].append(['splunk-shcluster-indexer'])
 
     def dump_settings(self):
         '''
