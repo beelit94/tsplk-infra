@@ -163,6 +163,22 @@ class State(object):
     def next(self):
         return None
 
+    def dump_settings(self):
+        '''
+        dump settings to settings.yml
+        '''
+        # write into settings.yml
+        settings = os.path.join(
+            settings_path_template.format(p=self.data['project_name']))
+        for platform in project_setting:
+            if self.data['platform'] in platform:
+                self.data[platform] = len(self.data['roles_count'])
+            else:
+                self.data[platform] = 0
+
+        with open(settings, "w") as yml_file:
+            yaml.dump(self.data, yml_file, default_flow_style=False)
+
 
 class StateMachine(object):
 
@@ -294,6 +310,8 @@ class SplunkArchState(State):
             return SingleIndexer(self.data)
         elif "searchhead_cluster" == arch:
             return SearchHeadCluster(self.data)
+        elif "searchhead_and_indexer_cluster" == arch:
+            return SearchHeadAndIndexerCluster(self.data)
 
 
 class SingleIndexer(State):
@@ -348,22 +366,6 @@ class IndexerCluster(State):
         self.data['roles_count'] = []
         self.data['roles_count'].append(['splunk-cluster-master'])
 
-    def dump_settings(self):
-        '''
-        dump settings to settings.yml
-        '''
-        # write into settings.yml
-        settings = os.path.join(
-            settings_path_template.format(p=self.data['project_name']))
-        for platform in project_setting:
-            if self.data['platform'] in platform:
-                self.data[platform] = len(self.data['roles_count'])
-            else:
-                self.data[platform] = 0
-
-        with open(settings, "w") as yml_file:
-            yaml.dump(self.data, yml_file, default_flow_style=False)
-
     def run(self):
         prompt = "How many slaves do you want?"
         number_of_slaves = click.prompt(prompt, type=int, default=2)
@@ -404,22 +406,6 @@ class SearchHeadCluster(State):
         self.data['roles_count'].append(['splunk-shcluster-deployer'])
         self.data['roles_count'].append(['splunk-shcluster-indexer'])
 
-    def dump_settings(self):
-        '''
-        dump settings to settings.yml
-        '''
-        # write into settings.yml
-        settings = os.path.join(
-            settings_path_template.format(p=self.data['project_name']))
-        for platform in project_setting:
-            if self.data['platform'] in platform:
-                self.data[platform] = len(self.data['roles_count'])
-            else:
-                self.data[platform] = 0
-
-        with open(settings, "w") as yml_file:
-            yaml.dump(self.data, yml_file, default_flow_style=False)
-
     def run(self):
         prompt = "How many members do you want?"
         number_of_members = click.prompt(prompt, type=int, default=2)
@@ -435,6 +421,58 @@ class SearchHeadCluster(State):
         self.dump_settings()
 
         prompt = "Replication factor:"
+        replication_factor = click.prompt(prompt, type=int, default=2)
+
+        sls = pillar_path_template.format(
+            p=self.data['project_name'], s="searchhead_cluster.sls")
+        update_sls(sls, {'replication_factor': replication_factor})
+
+
+class SearchHeadAndIndexerCluster(State):
+
+    '''
+    This stats stands for configuring a splunk indexer cluster
+    '''
+
+    def __init__(self, data):
+        '''
+        '''
+        self.data = data
+        self.data['roles_count'] = []
+        self.data['roles_count'].append(['splunk-cluster-master'])
+        self.data['roles_count'].append(['splunk-shcluster-deployer'])
+
+    def run(self):
+        prompt = "How many slaves for indexer cluster do you want?"
+        number_of_slaves = click.prompt(prompt, type=int, default=2)
+        for i in range(number_of_slaves):
+            self.data['roles_count'].append(['splunk-cluster-slave'])
+
+        prompt = "How many members for search head cluster do you want?"
+        number_of_members = click.prompt(prompt, type=int, default=2)
+        for i in range(number_of_members):
+            # set the first member as captain
+            if 0 == i:
+                self.data['roles_count'].append(
+                    ['splunk-shcluster-member', 'splunk-shcluster-captain'])
+            else:
+                self.data['roles_count'].append(['splunk-shcluster-member'])
+
+        # write into settings.yml
+        self.dump_settings()
+
+        prompt = "Replication factor for indexer cluster:"
+        replication_factor = click.prompt(prompt, type=int, default=2)
+
+        prompt = "Search factor for indexer cluster:"
+        search_factor = click.prompt(prompt, type=int, default=2)
+
+        sls = pillar_path_template.format(
+            p=self.data['project_name'], s="indexer_cluster.sls")
+        update_sls(sls, {'replication_factor': replication_factor,
+                         'search_factor': search_factor})
+
+        prompt = "Replication factor for search head cluster:"
         replication_factor = click.prompt(prompt, type=int, default=2)
 
         sls = pillar_path_template.format(
