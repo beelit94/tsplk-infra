@@ -87,3 +87,5 @@ to delete your project from project list, use
 1. under develope branch
 1. create branch release/`version`
 1. run `python release.py --release <major, minor, patch>`
+1. commit updated version file and changelog
+1. merge release version back to master and develope, tag master branch with version
