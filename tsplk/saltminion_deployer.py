@@ -66,7 +66,7 @@ class TerraformSaltMinion(Terraform):
 
     def assign_roles(self, roles):
         '''
-        :param roles: ex. roles = {'role1': count1, 'role2': count2}
+        :param roles: ex. roles = [['deployer'], ['memeber'], ['member', 'captain']]
         :param instances:
         :return:
         '''
@@ -76,30 +76,23 @@ class TerraformSaltMinion(Terraform):
             instances_list.append({'name': name,
                                    'info': info['primary']['attributes']})
 
-        total = 0
-        for role, count in roles.iteritems():
-            total += count
-
-        assert total == len(instances), 'instance is not fully up, ' \
+        assert len(roles) == len(instances), 'instance is not fully up, ' \
                                         'check tsplk.log'
 
         minion_info = []
-        for role, count in roles.iteritems():
-            ready_to_assign = instances_list[:count]
-            instances_list = instances_list[count:]
-
-            for minion in ready_to_assign:
-                minion_id = minion['info']['tags.Name']
-                local = salt.client.LocalClient()
-                result = self.retry_minion(
+        for i in range(len(roles)):
+            minion = instances_list[i]
+            minion_id = minion['info']['tags.Name']
+            local = salt.client.LocalClient()
+            result = self.retry_minion(
                     local, minion_id, 'grains.get', ['host'])
+            host = result[minion_id]
 
-                host = result[minion_id]
-
+            for role in roles[i]:
                 local.cmd(minion_id, 'grains.append', ['role', role])
 
                 minion_info.append({'host': host,
-                                    'role': role,
+                                    'role': str(role),
                                     'minion_id': str(minion_id),
                                     'ip': str(minion['info']['public_ip']),
                                     })
