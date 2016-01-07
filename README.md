@@ -79,3 +79,11 @@ to delete your project from project list, use
 6. Enter number of slaves, search heads you want
 7. Enter the replication factor and search factor you want
 8. do `tsplk up clustering`, tsplk will bring your instances up
+
+# How to Develope
+### How to release
+
+1. export FURY_URL=`private url, ask ftan`
+1. under develope branch
+1. create branch release/`version`
+1. run `python release.py --release <major, minor, patch>`
