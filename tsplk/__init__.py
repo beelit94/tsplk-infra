@@ -244,7 +244,7 @@ class SplunkCommonSettingState(State):
 
     def run(self):
         prompt = ("Plese enter the Splunk version you want, "
-              "or the url to download the Splunk package")
+            "or the url to download the Splunk package")
         splunk_version = str(click.prompt(prompt))
         file_path = pillar_path_template.format(
             p=self.data['project_name'], s="splunk.sls")
@@ -275,6 +275,27 @@ class Platform(State):
         self.data['platform'] = platform
 
         click.echo(click.style(platform, fg='green') + " is selected")
+        click.echo("")
+
+    def next(self):
+        return Timeout(self.data)
+
+
+class Timeout(State):
+
+    def __init__(self, data):
+        self.data = data
+
+    def run(self):
+        prompt = click.style(
+            "Please set timeout for your environment (hours)\n", fg='yellow')
+
+        prompt += 'default is'
+        timeout = click.prompt(prompt, type=int, default=8)
+        click.echo(click.style(
+            "Your machines will be destroyed after {h} hours".format(
+                h=timeout), fg='red'))
+        self.data['timeout'] = timeout
         click.echo("")
 
     def next(self):
