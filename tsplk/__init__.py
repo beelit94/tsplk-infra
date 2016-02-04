@@ -333,6 +333,8 @@ class SplunkArchState(State):
             return SearchHeadCluster(self.data)
         elif "searchhead_and_indexer_cluster" == arch:
             return SearchHeadAndIndexerCluster(self.data)
+        elif "indexers_with_deployment_server" == arch:
+            return Deployment(self.data)
 
 
 class SingleIndexer(State):
@@ -416,7 +418,7 @@ class IndexerCluster(State):
 class SearchHeadCluster(State):
 
     '''
-    This stats stands for configuring a splunk indexer cluster
+    This stats stands for configuring a splunk searchhead cluster
     '''
 
     def __init__(self, data):
@@ -452,12 +454,10 @@ class SearchHeadCluster(State):
 class SearchHeadAndIndexerCluster(State):
 
     '''
-    This stats stands for configuring a splunk indexer cluster
+    This stats stands for configuring splunk IDC and SHC
     '''
 
     def __init__(self, data):
-        '''
-        '''
         self.data = data
         self.data['roles_count'] = []
         self.data['roles_count'].append(['splunk-cluster-master'])
@@ -499,3 +499,24 @@ class SearchHeadAndIndexerCluster(State):
         sls = pillar_path_template.format(
             p=self.data['project_name'], s="searchhead_cluster.sls")
         update_sls(sls, {'replication_factor': replication_factor})
+
+
+class Deployment(State):
+
+    '''
+    This stats stands for configuring splunk deployment server-client
+    '''
+
+    def __init__(self, data):
+        self.data = data
+        self.data['roles_count'] = []
+        self.data['roles_count'].append(['splunk-deployment-server'])
+
+    def run(self):
+        prompt = "How many clients do you want?"
+        number_of_clients = click.prompt(prompt, type=int, default=2)
+        for i in range(number_of_clients):
+            self.data['roles_count'].append(['splunk-deployment-client'])
+
+        # write into settings.yml
+        self.dump_settings()
