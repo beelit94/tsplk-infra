@@ -333,7 +333,7 @@ class SplunkArchState(State):
             return SearchHeadCluster(self.data)
         elif "searchhead_and_indexer_cluster" == arch:
             return SearchHeadAndIndexerCluster(self.data)
-        elif "deployment" == arch:
+        elif "indexers_with_deployment_server" == arch:
             return Deployment(self.data)
 
 
@@ -418,7 +418,7 @@ class IndexerCluster(State):
 class SearchHeadCluster(State):
 
     '''
-    This stats stands for configuring a splunk indexer cluster
+    This stats stands for configuring a splunk searchhead cluster
     '''
 
     def __init__(self, data):
@@ -454,12 +454,10 @@ class SearchHeadCluster(State):
 class SearchHeadAndIndexerCluster(State):
 
     '''
-    This stats stands for configuring a splunk indexer cluster
+    This stats stands for configuring splunk IDC and SHC
     '''
 
     def __init__(self, data):
-        '''
-        '''
         self.data = data
         self.data['roles_count'] = []
         self.data['roles_count'].append(['splunk-cluster-master'])
@@ -506,12 +504,10 @@ class SearchHeadAndIndexerCluster(State):
 class Deployment(State):
 
     '''
-    This stats stands for configuring a splunk indexer cluster
+    This stats stands for configuring splunk deployment server-client
     '''
 
     def __init__(self, data):
-        '''
-        '''
         self.data = data
         self.data['roles_count'] = []
         self.data['roles_count'].append(['splunk-deployment-server'])
