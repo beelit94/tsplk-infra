@@ -1,16 +1,20 @@
 # tsplk
 
 It is a command line tool that could let you create a Splunk environment for testing.
+
 The purpose of this tool is that for QA/DEV could get a testable Splunk without knowing
 Vagrant, AWS, Salt, Terraform.
 
 
 # Installation
 
-### Prerequisite
+### Prerequsition
 1. _pipsi_ (optional)
 
-    [pipsi](https://github.com/mitsuhiko/pipsi) is a wrapper around virtualenv and pip which installs scripts provided by python packages into separate virtualenvs to shield them from your system and each other. This is a nice to have for user who use python command heavily. However, there are several user report that they can't install it successfully. If you can't install it, you could just skip it.
+> [pipsi](https://github.com/mitsuhiko/pipsi) is a wrapper around virtualenv and pip which installs scripts provided by python packages into separate virtualenvs to shield them from your system and each other. 
+> This is a nice to have for user who use python command heavily. 
+> However, there are several user report that they can't install it successfully. 
+> If you can't install it, you could just skip it.
 
         curl https://raw.githubusercontent.com/mitsuhiko/pipsi/master/get-pipsi.py | python
 
