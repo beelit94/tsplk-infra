@@ -2,8 +2,7 @@
 
 It is a command line tool that could let you create a Splunk environment for testing.
 
-The purpose of this tool is that for QA/DEV could get a testable Splunk without knowing
-Vagrant, AWS, Salt, Terraform.
+The purpose of this tool is that for QA/DEV could get a testable Splunk ASAP.
 
 
 # Installation
