@@ -16,6 +16,7 @@ Vagrant, AWS, Salt, Terraform.
 > However, there are several user report that they can't install it successfully. 
 > If you can't install it, you could just skip it.
 
+
         curl https://raw.githubusercontent.com/mitsuhiko/pipsi/master/get-pipsi.py | python
 
 2. _homebrew_(optional, simplified the installation of terraform)
