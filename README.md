@@ -7,6 +7,10 @@ The purpose of this tool is that for QA/DEV could get a testable Splunk ASAP.
 
 # Installation
 
+### Supported platform
+
+Right now we only test on MAC.
+
 ### Prerequsition
 1. _pipsi_ (optional)
 
@@ -17,11 +21,11 @@ The purpose of this tool is that for QA/DEV could get a testable Splunk ASAP.
 
         curl https://raw.githubusercontent.com/mitsuhiko/pipsi/master/get-pipsi.py | python
 
-2. _homebrew_(optional, simplified the installation of terraform)
+2. [_homebrew_](http://brew.sh/) (optional, simplified the installation of terraform)
 
         ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 
-3. _terraform_
+3. [_terraform_](https://www.terraform.io/)
 
     if you have homebrew installed,
 
