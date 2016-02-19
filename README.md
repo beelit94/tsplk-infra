@@ -45,15 +45,23 @@ If you don't have pipsi installed,
 ### Running tsplk at the very first time
 
 1. ask for AWS access key, secret key and atlas token from admin
-2. get your HipChat name, 
-3. get your HipChat token
-2. run `tsplk config` and input the information
+1. get your HipChat name
+1. run `tsplk config` and input the information
+
+# Upgrade
+
+If you have pipsi installed,
+
+    pipsi upgrade tsplk
+     
+If you don't have pipsi installed,
+
+    sudo pip install --upgrade tsplk 
 
 # Usage
 ### How to create a Splunk environment
 
 1. Simply use `tsplk new` and follow the instruction
-
 2. Use `tsplk up` to bring up the project you just create
 
         tsplk up <project_name>
@@ -98,11 +106,17 @@ to delete your project from project list, use
 8. do `tsplk up clustering`, tsplk will bring your instances up
 
 # How to get involved
+### report bug
+
+report bug to project SQA with component = Salt
+https://jira.splunk.com/secure/CreateIssueDetails!init.jspa?pid=12521&issuetype=1&components=Salt
+
 ### submodule
 
-tsplk is a command line tool depend on several project
+tsplk is a command line tool depend on several projects
+
 1. salty-packer
-2.  
+2. salty-splunk
 
 ### How to release
 
