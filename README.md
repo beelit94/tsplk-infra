@@ -47,8 +47,8 @@ If you don't have pipsi installed,
 
 ### Running tsplk at the very first time
 
-1. ask for AWS access key, secret key and atlas token from admin
-1. get your HipChat name
+1. ask for AWS access key, secret key and atlas token from [admin](ftan@splunk.com)
+1. Go [here](https://hipchat.splunk.com/account/api) to get your HipChat `sendmessage` token
 1. run `tsplk config` and input the information
 
 # Upgrade
