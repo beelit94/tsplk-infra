@@ -7,7 +7,7 @@ The purpose of this tool is that for QA/DEV could get a testable Splunk ASAP.
 
 # Installation
 
-### Supported platform
+### Supported platform of cmd tool
 
 Right now we only test on MAC.
 
@@ -113,17 +113,16 @@ to delete your project from project list, use
 8. do `tsplk up clustering`, tsplk will bring your instances up
 
 # How to get involved
-### report bug
+### Report bug
 
-report bug to project SQA with component = Salt
-https://jira.splunk.com/secure/CreateIssueDetails!init.jspa?pid=12521&issuetype=1&components=Salt
+report bug to project SQA with component = Salt, [report here](https://jira.splunk.com/secure/CreateIssueDetails!init.jspa?pid=12521&issuetype=1&components=Salt)
 
-### submodule
+### Project dependency
 
 tsplk is a command line tool depend on several projects
 
-1. salty-packer
-2. salty-splunk
+1. [salty-packer](https://git.splunk.com/users/ftan/repos/packer-salty-vagrant/browse)
+2. [salty-splunk](https://git.splunk.com/projects/SUSTAIN/repos/salt/browse)
 
 ### How to release
 
