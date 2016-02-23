@@ -404,7 +404,6 @@ class SearchHeadCluster(State):
         self.data = data
         self.data['roles_count'] = []
         self.data['roles_count'].append(['splunk-shcluster-deployer'])
-        self.data['roles_count'].append(['splunk-shcluster-indexer'])
 
     def run(self):
         prompt = "How many members do you want?"
@@ -416,6 +415,11 @@ class SearchHeadCluster(State):
                     ['splunk-shcluster-member', 'splunk-shcluster-captain'])
             else:
                 self.data['roles_count'].append(['splunk-shcluster-member'])
+
+        prompt = "How many indexers do you want?"
+        number_of_indexers = click.prompt(prompt, type=int, default=2)
+        for i in range(number_of_indexers):
+            self.data['roles_count'].append(['splunk-shcluster-indexer'])
 
         # write into settings.yml
         self.dump_settings()
