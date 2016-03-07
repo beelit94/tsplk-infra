@@ -83,6 +83,7 @@ to delete your project from project list, use
 # How to Develope
 ### How to release
 
+1. install sphinx: pip install sphinx
 1. export FURY_URL=`private url, ask ftan`
 1. under develope branch
 1. create branch release/`version`
