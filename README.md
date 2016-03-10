@@ -1,25 +1,38 @@
 # tsplk
 
-It is a command line tool that could let you create Splunk environment for testing.
-The purpose of this tool is that for QA/DEV could get a testable Splunk without knowing
-Vagrant, AWS, Salt, Terraform.
+It is a command line tool that could let you create a Splunk environment for testing.
+
+The purpose of this tool is that for QA/DEV could get a testable Splunk ASAP.
 
 
 # Installation
 
+### Supported platform of cmd tool
+
+Right now we only test on MAC.
+
 ### Prerequsition
-1. _pipsi_
+1. _pipsi_ (optional)
 
-         curl https://raw.githubusercontent.com/mitsuhiko/pipsi/master/get-pipsi.py | python
+    > [pipsi](https://github.com/mitsuhiko/pipsi) is a wrapper around virtualenv and pip which installs scripts provided by python packages into separate virtualenvs to shield them from your system and each other. 
+    > This is a nice to have for user who use python command heavily. 
+    > However, there are several user report that they can't install it successfully. 
+    > If you can't install it, you could just skip it.
 
-2. _homebrew_
+        curl https://raw.githubusercontent.com/mitsuhiko/pipsi/master/get-pipsi.py | python
+
+2. [_homebrew_](http://brew.sh/) (optional, simplified the installation of terraform)
 
         ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 
-3. _terraform_
+3. [_terraform_](https://www.terraform.io/)
+
+    if you have homebrew installed,
 
         brew install caskroom/cask/brew-cask
         brew cask install terraform
+
+    if you don't have homebrew installed, follow [this](https://www.terraform.io/intro/getting-started/install.html)
 
 4. _edit pip conf file_
 edit `~/.pip/pip.conf` and add the following (if it doesn't exist please create one)
@@ -28,15 +41,34 @@ edit `~/.pip/pip.conf` and add the following (if it doesn't exist please create 
         extra-index-url = https://pypi.fury.io/m4dy9Unh83NCJdyGHkzY/beelit94/
 
 ### Install tsplk command
+If you have pipsi installed,
 
     pipsi install tsplk
 
+If you don't have pipsi installed,
+
+    sudo pip install tsplk
+
+### Running tsplk at the very first time
+
+1. ask for AWS access key, secret key and atlas token from [admin](ftan@splunk.com)
+1. Go [here](https://hipchat.splunk.com/account/api) to get your HipChat `sendmessage` token
+1. run `tsplk config` and input the information
+
+# Upgrade
+
+If you have pipsi installed,
+
+    pipsi upgrade tsplk
+     
+If you don't have pipsi installed,
+
+    sudo pip install --upgrade tsplk 
 
 # Usage
 ### How to create a Splunk environment
 
 1. Simply use `tsplk new` and follow the instruction
-
 2. Use `tsplk up` to bring up the project you just create
 
         tsplk up <project_name>
@@ -80,10 +112,24 @@ to delete your project from project list, use
 7. Enter the replication factor and search factor you want
 8. do `tsplk up clustering`, tsplk will bring your instances up
 
-# How to Develope
+# How to get involved
+### Report bug
+
+report bug to project SQA with component = Salt, [report here](https://jira.splunk.com/secure/CreateIssueDetails!init.jspa?pid=12521&issuetype=1&components=Salt)
+
+### Project dependency
+
+tsplk is a command line tool depend on several projects
+
+1. [salty-packer](https://git.splunk.com/users/ftan/repos/packer-salty-vagrant/browse)
+2. [salty-splunk](https://git.splunk.com/projects/SUSTAIN/repos/salt/browse)
+
 ### How to release
 
+1. install sphinx: pip install sphinx
 1. export FURY_URL=`private url, ask ftan`
 1. under develope branch
 1. create branch release/`version`
 1. run `python release.py --release <major, minor, patch>`
+1. commit updated version file and changelog
+1. merge release version back to master and develope, tag master branch with version
