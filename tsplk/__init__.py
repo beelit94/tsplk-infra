@@ -53,6 +53,24 @@ project_setting = [
     'windows_2012_r2_count'
 ]
 
+default_role = {
+    'search-head': 0,
+    'indexer': 0,
+    'indexer-cluster-master': False,
+    'indexer-cluster-peer': 0,
+    'indexer-cluster-search-head': 0,
+    'search-head-cluster-member': 0,
+    'search-head-cluster-deployer': 0,
+    'search-head-cluster-first-captain': False,
+    'central-license-master': False,
+    'central-license-slave': 0,
+    'deployment-server': False,
+    'deployment-client': 0,
+    'windows-universal-forwarder': 0,
+    'ubuntu-universal-forwarder': 0,
+    'roles_count': []
+}
+
 # the name here need to match name under
 # salt/file_base/orchestration
 splunk_architectures = [
@@ -134,7 +152,7 @@ class ProjectSetting:
 def _create_project(proj_name):
     project_dir = os.path.join(project_root, proj_name)
     if os.path.isdir(project_dir):
-        click.echo("the project %s exists" % proj_name)
+        click.echo(click.style("the project %s exists" % proj_name, fg='red'))
         exit(1)
     else:
         salt_path = os.path.join(file_path, "salt")
@@ -167,14 +185,26 @@ class State(object):
         '''
         dump settings to settings.yml
         '''
-        # write into settings.yml
         settings = os.path.join(
             settings_path_template.format(p=self.data['project_name']))
+
         for platform in project_setting:
             if self.data['platform'] in platform:
                 self.data[platform] = len(self.data['roles_count'])
             else:
                 self.data[platform] = 0
+
+            if 'ubuntu' in platform:
+                self.data[platform] = self.data[platform] + \
+                                      self.data['ubuntu-universal-forwarder']
+            elif 'windows_2012' in platform:
+                self.data[platform] = self.data[platform] + \
+                                      self.data['windows-universal-forwarder']
+
+        for i in range(self.data['ubuntu-universal-forwarder']):
+            self.data['roles_count'].append(['ubuntu-universal-forwarder'])
+        for i in range(self.data['windows-universal-forwarder']):
+            self.data['roles_count'].append(['windows-universal-forwarder'])
 
         with open(settings, "w") as yml_file:
             yaml.dump(self.data, yml_file, default_flow_style=False)
@@ -203,10 +233,11 @@ class New(State):
     '''
 
     def __init__(self):
-        self.data = dict()
+        self.data = default_role
 
     def run(self):
-        proj_name = click.prompt("Please Enter the project name")
+        prompt = click.style("Please enter the project name", fg='yellow')
+        proj_name = click.prompt(prompt)
         _create_project(proj_name)
 
         self.data['project_name'] = str(proj_name)
@@ -218,10 +249,13 @@ class New(State):
         if global_setting.is_setting_missed():
             return SetGlobal(self.data)
         else:
-            return SplunkCommonSettingState(self.data)
+            return SplunkVersion(self.data)
 
 
 class SetGlobal(State):
+    '''
+    State for global value settings, get username, aws_access_key....
+    '''
 
     def __init__(self, data):
         self.data = data
@@ -234,35 +268,37 @@ class SetGlobal(State):
             GlobalSetting.set_value(key, input_value)
 
     def next(self):
-        return SplunkCommonSettingState(self.data)
+        return SplunkVersion(self.data)
 
 
-class SplunkCommonSettingState(State):
+class SplunkVersion(State):
+    '''
+    State for splunk version or package url
+    '''
 
     def __init__(self, data):
         self.data = data
 
     def run(self):
-        prompt = ("Plese enter the Splunk version you want, "
-            "or the url to download the Splunk package")
+        prompt = click.style("Plese enter Splunk version or package url",
+                             fg='yellow')
         splunk_version = str(click.prompt(prompt))
         file_path = pillar_path_template.format(
             p=self.data['project_name'], s="splunk.sls")
         update_sls(file_path, {'version': splunk_version})
 
     def next(self):
-        return Platform(self.data)
+        return InstancePlatform(self.data)
 
 
-class Platform(State):
+class InstancePlatform(State):
 
     def __init__(self, data):
         self.data = data
 
     def run(self):
         platform_arr = [p.replace("_count", "") for p in project_setting]
-        prompt = click.style("Please select the platform you want to use\n",
-                             fg='yellow')
+        prompt = click.style("Please select Splunk platform\n", fg='yellow')
 
         for idx, platform in enumerate(platform_arr):
             prompt = prompt + "  [{d:1d}] {p}\n".format(
@@ -278,231 +314,159 @@ class Platform(State):
         click.echo("")
 
     def next(self):
-        return Timeout(self.data)
+        return Indexers(self.data)
 
 
-class Timeout(State):
-
-    def __init__(self, data):
-        self.data = data
-
-    def run(self):
-        prompt = click.style(
-            "Please set timeout for your environment (hours)\n", fg='yellow')
-
-        prompt += 'default is'
-        timeout = click.prompt(prompt, type=int, default=8)
-        click.echo(click.style(
-            "Your machines will be destroyed after {h} hours".format(
-                h=timeout), fg='red'))
-        self.data['timeout'] = timeout
-        click.echo("")
-
-    def next(self):
-        return SplunkArchState(self.data)
-
-
-class SplunkArchState(State):
+class Indexers(State):
 
     def __init__(self, data):
         self.data = data
 
     def run(self):
         prompt = click.style(
-            "Please select the architecture you want to build\n",
-            fg='yellow')
-        for arch in splunk_architectures:
-            prompt = prompt + "  [{d:1d}] {p}\n".format(
-                d=splunk_architectures.index(arch), p=arch)
-
-        prompt += 'default is'
-        index = click.prompt(prompt, type=int, default=0)
-        arch = splunk_architectures[index]
-        self.data['splunk_architecture'] = arch
-
-        click.echo(click.style(arch, fg='green') + " is selected")
-        click.echo("")
+            "How many indexer do you want?", fg='yellow')
+        indexer_count = click.prompt(prompt, type=int, default=2)
+        self.data['indexer'] = indexer_count
 
     def next(self):
-        arch = self.data['splunk_architecture']
-        if "indexer_cluster" == arch:
+        if self.data['indexer'] > 1:
             return IndexerCluster(self.data)
-        elif "single_indexer" == arch:
-            return SingleIndexer(self.data)
-        elif "searchhead_cluster" == arch:
-            return SearchHeadCluster(self.data)
-        elif "searchhead_and_indexer_cluster" == arch:
-            return SearchHeadAndIndexerCluster(self.data)
-        elif "indexers_with_deployment_server" == arch:
-            return Deployment(self.data)
-
-
-class SingleIndexer(State):
-
-    '''
-    This state stands for configuring a single instance Splunk
-    '''
-
-    def __init__(self, data):
-        '''
-        '''
-        self.data = data
-        self.number = 0
-        self.data['roles_count'] = []
-
-    def dump_settings(self):
-        '''
-        dump settings to settings.yml
-        '''
-        # write into settings.yml
-        settings = os.path.join(
-            settings_path_template.format(p=self.data['project_name']))
-        for platform in project_setting:
-            if self.data['platform'] in platform:
-                self.data[platform] = self.number
-            else:
-                self.data[platform] = 0
-
-        with open(settings, "w") as yml_file:
-            yaml.dump(self.data, yml_file, default_flow_style=False)
-
-    def run(self):
-        '''
-        '''
-        prompt = "How many instances do you want?"
-        self.number = click.prompt(prompt, type=int, default=1)
-        for i in range(self.number):
-            self.data['roles_count'].append(['splunk-single-indexer'])
-        self.dump_settings()
+        else:
+            return SearchHead(self.data)
 
 
 class IndexerCluster(State):
 
-    '''
-    This stats stands for configuring a splunk indexer cluster
-    '''
-
     def __init__(self, data):
-        '''
-        '''
         self.data = data
-        self.data['roles_count'] = []
-        self.data['roles_count'].append(['splunk-cluster-master'])
 
     def run(self):
-        prompt = "How many slaves do you want?"
-        number_of_slaves = click.prompt(prompt, type=int, default=2)
-        for i in range(number_of_slaves):
-            self.data['roles_count'].append(['splunk-cluster-slave'])
+        prompt = click.style(
+            "Do you want indexer cluster? (Y/N)", fg='yellow')
+        indexer_cluster = click.prompt(prompt, type=bool, default='Y')
+        self.data['indexer-cluster-master'] = indexer_cluster
 
-        prompt = "How many search heads do you want?"
-        number_of_searhheads = click.prompt(prompt, type=int, default=2)
-        for i in range(number_of_searhheads):
-            self.data['roles_count'].append(['splunk-cluster-searchhead'])
+        indexer_count = self.data['indexer']
+        if indexer_cluster:
+            self.data['roles_count'].append(['indexer-cluster-master'])
+            self.data['indexer-cluster-peer'] = indexer_count
+            self.data['indexer'] = 0
+            for i in range(indexer_count):
+                self.data['roles_count'].append(['indexer-cluster-peer'])
 
-        # write into settings.yml
-        self.dump_settings()
+            prompt = "Replication factor for indexer cluster:"
+            replication_factor = click.prompt(prompt, type=int, default=2)
 
-        prompt = "Replication factor:"
-        replication_factor = click.prompt(prompt, type=int, default=2)
+            prompt = "Search factor for indexer cluster:"
+            search_factor = click.prompt(prompt, type=int, default=2)
 
-        prompt = "Search factor:"
-        search_factor = click.prompt(prompt, type=int, default=2)
+            sls = pillar_path_template.format(
+                p=self.data['project_name'], s="indexer_cluster.sls")
+            update_sls(sls, {'replication_factor': replication_factor,
+                             'search_factor': search_factor})
+        else:
+            for i in range(indexer_count):
+                self.data['roles_count'].append(['indexer'])
 
-        sls = pillar_path_template.format(
-            p=self.data['project_name'], s="indexer_cluster.sls")
-        update_sls(sls, {'replication_factor': replication_factor,
-                         'search_factor': search_factor})
+    def next(self):
+        return SearchHead(self.data)
+
+
+class SearchHead(State):
+
+    def __init__(self, data):
+        self.data = data
+
+    def run(self):
+        prompt = click.style(
+            "How many search head do you want?", fg='yellow')
+        search_head_count = click.prompt(prompt, type=int, default=2)
+        self.data['search-head'] = search_head_count
+
+    def next(self):
+        if self.data['search-head'] > 1:
+            return SearchHeadCluster(self.data)
+        else:
+            return UniversalForwarder(self.data)
 
 
 class SearchHeadCluster(State):
 
-    '''
-    This stats stands for configuring a splunk searchhead cluster
-    '''
-
-    def __init__(self, data):
-        '''
-        '''
-        self.data = data
-        self.data['roles_count'] = []
-        self.data['roles_count'].append(['splunk-shcluster-deployer'])
-
-    def run(self):
-        prompt = "How many members do you want?"
-        number_of_members = click.prompt(prompt, type=int, default=2)
-        for i in range(number_of_members):
-            # set the first member as captain
-            if 0 == i:
-                self.data['roles_count'].append(
-                    ['splunk-shcluster-member', 'splunk-shcluster-captain'])
-            else:
-                self.data['roles_count'].append(['splunk-shcluster-member'])
-
-        prompt = "How many indexers do you want?"
-        number_of_indexers = click.prompt(prompt, type=int, default=2)
-        for i in range(number_of_indexers):
-            self.data['roles_count'].append(['splunk-shcluster-indexer'])
-
-        # write into settings.yml
-        self.dump_settings()
-
-        prompt = "Replication factor:"
-        replication_factor = click.prompt(prompt, type=int, default=2)
-
-        sls = pillar_path_template.format(
-            p=self.data['project_name'], s="searchhead_cluster.sls")
-        update_sls(sls, {'replication_factor': replication_factor})
-
-
-class SearchHeadAndIndexerCluster(State):
-
-    '''
-    This stats stands for configuring splunk IDC and SHC
-    '''
-
     def __init__(self, data):
         self.data = data
-        self.data['roles_count'] = []
-        self.data['roles_count'].append(['splunk-cluster-master'])
-        self.data['roles_count'].append(['splunk-shcluster-deployer'])
 
     def run(self):
-        prompt = "How many slaves for indexer cluster do you want?"
-        number_of_slaves = click.prompt(prompt, type=int, default=2)
-        for i in range(number_of_slaves):
-            self.data['roles_count'].append(['splunk-cluster-slave'])
+        prompt = click.style(
+            "Do you want search head cluster? (Y/N)", fg='yellow')
+        search_head_cluster = click.prompt(prompt, type=bool, default='Y')
+        self.data['search-head-cluster-deployer'] = search_head_cluster
 
-        prompt = "How many members for search head cluster do you want?"
-        number_of_members = click.prompt(prompt, type=int, default=2)
-        for i in range(number_of_members):
-            # set the first member as captain
-            if 0 == i:
-                self.data['roles_count'].append(
-                    ['splunk-shcluster-member', 'splunk-shcluster-captain'])
+        search_head_count = self.data['search-head']
+        if search_head_cluster:
+            self.data['roles_count'].append(['search-head-cluster-deployer'])
+            self.data['search-head-cluster-first-captain'] = True
+            self.data['search-head-cluster-member'] = search_head_count
+            self.data['search-head'] = 0
+
+            for i in range(search_head_count):
+                # set the first member as captain
+                if 0 == i:
+                    self.data['roles_count'].append(
+                        ['search-head-cluster-member',
+                         'search-head-cluster-first-captain'])
+                else:
+                    self.data['roles_count'].append(
+                        ['search-head-cluster-member'])
+
+            prompt = "Replication factor for search head cluster:"
+            replication_factor = click.prompt(prompt, type=int, default=2)
+
+            sls = pillar_path_template.format(
+                p=self.data['project_name'], s="searchhead_cluster.sls")
+            update_sls(sls, {'replication_factor': replication_factor})
+
+        else:
+            if self.data['indexer-cluster-master']:
+                self.data['search-head'] = 0
+                self.data['indexer-cluster-search-head'] = search_head_count
+                for i in range(search_head_count):
+                    self.data['roles_count'].append(
+                        ['indexer-cluster-search-head'])
             else:
-                self.data['roles_count'].append(['splunk-shcluster-member'])
+                for i in range(search_head_count):
+                    self.data['roles_count'].append(['search-head'])
 
-        # write into settings.yml
-        self.dump_settings()
+    def next(self):
+        return UniversalForwarder(self.data)
 
-        prompt = "Replication factor for indexer cluster:"
-        replication_factor = click.prompt(prompt, type=int, default=2)
 
-        prompt = "Search factor for indexer cluster:"
-        search_factor = click.prompt(prompt, type=int, default=2)
+class UniversalForwarder(State):
 
-        sls = pillar_path_template.format(
-            p=self.data['project_name'], s="indexer_cluster.sls")
-        update_sls(sls, {'replication_factor': replication_factor,
-                         'search_factor': search_factor})
+    def __init__(self, data):
+        self.data = data
 
-        prompt = "Replication factor for search head cluster:"
-        replication_factor = click.prompt(prompt, type=int, default=2)
+    def run(self):
+        # ask ubuntu and windows only
+        prompt = click.style(
+            "How many ubuntu universal forwarder do you want?",
+            fg='yellow')
+        ubuntu_uf = click.prompt(prompt, type=int, default=0)
+        self.data['ubuntu-universal-forwarder'] = ubuntu_uf
 
-        sls = pillar_path_template.format(
-            p=self.data['project_name'], s="searchhead_cluster.sls")
-        update_sls(sls, {'replication_factor': replication_factor})
+        prompt = click.style(
+            "How many windows universal forwarder do you want?",
+            fg='yellow')
+        windows_uf = click.prompt(prompt, type=int, default=0)
+        self.data['windows-universal-forwarder'] = windows_uf
+
+    def next(self):
+        if self.data['ubuntu-universal-forwarder'] + \
+                self.data['windows-universal-forwarder'] == 0 \
+                and self.data['search-head-cluster-deployer'] \
+                and self.data['indexer-cluster-master']:
+            return LicenseMaster(self.data)
+        else:
+            return Deployment(self.data)
 
 
 class Deployment(State):
@@ -513,14 +477,40 @@ class Deployment(State):
 
     def __init__(self, data):
         self.data = data
-        self.data['roles_count'] = []
-        self.data['roles_count'].append(['splunk-deployment-server'])
 
     def run(self):
-        prompt = "How many clients do you want?"
-        number_of_clients = click.prompt(prompt, type=int, default=2)
-        for i in range(number_of_clients):
-            self.data['roles_count'].append(['splunk-deployment-client'])
+        prompt = click.style(
+            "Do you need deployment server? (Y/N)", fg='yellow')
+        deployment_server = click.prompt(prompt, type=bool, default='Y')
+        self.data['deployment-server'] = deployment_server
 
-        # write into settings.yml
+        if deployment_server:
+            self.data['roles_count'].append(['deployment-server'])
+
+            prompt = click.style(
+                "How many deployment client do you want ", fg='yellow')
+            deployment_client = click.prompt(prompt, type=int, default=2)
+            self.data['deployment-client'] = deployment_client
+            for i in range(deployment_client):
+                self.data['roles_count'].append(['deployment-client'])
+
+    def next(self):
+        return LicenseMaster(self.data)
+
+
+class LicenseMaster(State):
+
+    def __init__(self, data):
+        self.data = data
+
+    def run(self):
+        prompt = click.style(
+            "Do you need license master? (Y/N)", fg='yellow')
+        license_master = click.prompt(prompt, type=bool, default='Y')
+        self.data['central-license-master'] = license_master
+        if license_master:
+            self.data['roles_count'].append(['central-license-master'])
+            self.data['roles_count'].append(['central-license-slave'])
+            self.data['central-license-slave'] = True
+
         self.dump_settings()
