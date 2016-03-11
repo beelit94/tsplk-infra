@@ -53,7 +53,7 @@ project_setting = [
     'windows_2012_r2_count'
 ]
 
-default_role = {
+default_settings = {
     'search-head': 0,
     'indexer': 0,
     'indexer-cluster-master': False,
@@ -233,7 +233,7 @@ class New(State):
     '''
 
     def __init__(self):
-        self.data = default_role
+        self.data = default_settings
 
     def run(self):
         prompt = click.style("Please enter the project name", fg='yellow')
