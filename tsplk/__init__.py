@@ -288,10 +288,10 @@ class SplunkVersion(State):
         update_sls(file_path, {'version': splunk_version})
 
     def next(self):
-        return InstancePlatform(self.data)
+        return SplunkPlatform(self.data)
 
 
-class InstancePlatform(State):
+class SplunkPlatform(State):
 
     def __init__(self, data):
         self.data = data
