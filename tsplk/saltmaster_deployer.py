@@ -1,4 +1,4 @@
-from terraform import Terraform
+from python_terraform import Terraform
 import paramiko
 from scp import SCPClient, SCPException
 import os
