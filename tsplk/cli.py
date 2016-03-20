@@ -109,43 +109,50 @@ def up(project, only_minion):
 
 
 @click.command()
-@click.argument("project", nargs=1, type=click.Choice(projects))
+@click.argument("project", nargs=-1, type=click.Choice(projects))
 def status(project):
     '''
     Show the status of the machines of the given project
     '''
-    ch_project_folder(project)
-    ps = ProjectSetting(project)
+    project_to_show = project if len(project) > 0 else projects
 
-    master_var = create_master_variables(project, ps)
-    minion_var = create_minion_variables(project, ps)
-    salt_master = TerraformSaltMaster(master_var, minion_var)
+    for project in project_to_show:
+        click.echo(tabulate.tabulate([[project],]))
+        ch_project_folder(project)
+        ps = ProjectSetting(project)
 
-    print_info = ['host', 'minion_id', 'role', 'ip']
-    print_arr = []
-    print_arr.append(print_info)
+        master_var = create_master_variables(project, ps)
+        minion_var = create_minion_variables(project, ps)
+        salt_master = TerraformSaltMaster(master_var, minion_var)
 
-    if salt_master.is_master_up():
-        master = [
-            '', 'salt-master', 'salt-master', salt_master.get_public_ip()
-        ]
-        print_arr.append(master)
-    else:
-        click.echo('master is not up yet')
+        print_info = ['host', 'minion_id', 'role', 'ip']
+        print_arr = []
 
-    if not salt_master.is_minions_up():
-        click.echo('minion is not ready yet')
+        master_up = salt_master.is_master_up()
+        if master_up:
+            master = [
+                '', 'salt-master', 'salt-master', salt_master.get_public_ip()
+            ]
+            print_arr.append(master)
+        else:
+            click.echo('master is not up yet')
 
-    info = salt_master.get_minions_info()
-    info = [] if info is None else info
-    for instance in info:
-        row = []
-        for title in print_info:
-            row.append(instance[title])
-        print_arr.append(row)
+        minion_up = salt_master.is_minions_up()
+        if not minion_up:
+            click.echo('minion is not ready yet')
 
-    table = tabulate.tabulate(print_arr)
-    click.echo(table)
+        if master_up or minion_up:
+            info = salt_master.get_minions_info()
+            info = [] if info is None else info
+            for instance in info:
+                row = []
+                for title in print_info:
+                    row.append(instance[title])
+                print_arr.append(row)
+
+            table = tabulate.tabulate(
+                print_arr, headers=print_info, tablefmt="fancy_grid")
+            click.echo(table)
 
 
 @click.command()
