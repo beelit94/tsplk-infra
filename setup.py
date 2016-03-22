@@ -12,7 +12,9 @@ dependencies = [
     'paramiko',
     'scp',
     'tabulate',
-    'python-terraform'
+    'python-terraform',
+    'requests',
+    'Crypto'
 ]
 module_name = 'tsplk'
 

@@ -1,11 +1,18 @@
 variable "aws_access_key" {}
 variable "aws_secret_key" {}
-variable "atlas_token" {}
+variable "username" {}
+variable "project_name" {}
+
+variable "atlas_token" {
+  # todo, store this token at somewhere else
+  default = "zzRR9ziEHspkqg.atlasv1.UM4GyPYRHGeDyqFu536Bl5nuRGTdPuN5T0BorWu1cZeGUdZx90ZgD0qWFltFDlzEB0E"
+}
 variable "key_name" {
   default = "id_rsa"
 }
-variable "username" {}
-variable "project_name" {}
+variable "master_instance_type" {
+  default = "m3.large"
+}
 
 provider "atlas" {
   # You can also set the atlas token by exporting
@@ -20,24 +27,6 @@ provider "aws" {
 }
 
 # atlas
-resource "atlas_artifact" "windows-2008-r2" {
-  name = "splunk-sus-qa/windows-2008-r2"
-  type = "amazon.ami"
-  version = "latest"
-}
-
-resource "atlas_artifact" "windows-2012-r2" {
-  name = "splunk-sus-qa/windows-2012-r2"
-  type = "amazon.ami"
-  version = "latest"
-}
-
-resource "atlas_artifact" "ubuntu-1404" {
-  name = "splunk-sus-qa/ubuntu-1404"
-  type = "amazon.ami"
-  version = "latest"
-}
-
 resource "atlas_artifact" "ubuntu-salt-master" {
   name = "splunk-sus-qa/ubuntu-1404-saltmaster"
   type = "amazon.ami"
@@ -50,11 +39,13 @@ resource "aws_key_pair" "key" {
 }
 
 resource "aws_instance" "ubuntu-salt-master" {
-  ami = "ami-12fd1072"
-  instance_type = "m3.large"
+  ami = "ami-bd37dfdd"
+  instance_type = "${var.master_instance_type}"
   security_groups = ["terraform-salty-splunk"]
   tags {
     Name = "${var.username}-${var.project_name}-ubuntu-1404-saltmaster"
+    User = "${var.username}"
+    Project = "${var.project_name}"
   }
   # count = "${var.ubuntu_saltmaster_count}"
   key_name = "${aws_key_pair.key.key_name}"
@@ -82,13 +73,13 @@ resource "aws_instance" "ubuntu-salt-master" {
     destination = "settings.yml"
   }
 
-
-  provisioner "remote-exec" {
-    inline = [
-      # call up the rest minion
-      "nohup sudo -b xxx.py ${file("parameters")}"
-    ]
-  }
+//  provisioner "remote-exec" {
+//    inline = [
+//      # call up the rest minion
+//      "echo test",
+//      #"nohup sudo python saltminion_deployer.py up > tsplk.log 2>&1 &"
+//    ]
+//  }
 }
 
 output "salt-master-public-ip" {

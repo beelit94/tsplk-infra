@@ -1,81 +1,49 @@
 import os
 import shutil
+import string
+
 import click
 import keyring
 import yaml
 from collections import OrderedDict
+import requests
+import logging
+from requests.exceptions import MissingSchema
+from Crypto.PublicKey import RSA
+import random
 
-vagrant_splunk_sub_module = 'vagrant-salty-splunk'
-project_root = os.path.join(os.path.expanduser('~'), ".tsplk")
-settings_path_template = os.path.join(project_root, '{p}', 'settings.yml')
-pillar_path_template = os.path.join(
-    project_root, '{p}', "salt", "pillar", '{s}')
-file_path = os.path.abspath(os.path.dirname(__file__))
+log = logging.getLogger()
+working_folder_name = ".tsplk"
+project_root = os.path.join(os.path.expanduser('~'), working_folder_name)
+setting_filename = 'settings.yml'
+ssh_private_key_name = 'id_rsa'
+sync_folder = 'sync_to_file_base'
 
 global_stetting_list = OrderedDict({
     'aws_access_key': {
         'prompt_question': 'Please enter AWS access key ID'
     },
 
-    'atlas_token': {
-        'prompt_question': 'Please enter atlas token'
-    },
-
     'aws_secret_key': {
         'prompt_question': 'Please enter secret key'
     },
 
-    'rdp_password': {
-        'prompt_question': 'Please enter RDP password for windows VM'
-    },
-
     'username': {
-        'prompt_question': 'Please enter your user name'
-                           '(your employee id is suggested)'
-    },
-
-    'key_path': {
-        'prompt_question': 'Please enter your ssh key path for linux VM'
-    },
-
-    'key_name': {
-        'prompt_question': 'Please enter your ssh key name on AWS'
+        'prompt_question': 'Please enter your employee account'
+                           '(make sure you get it right, hipchat will use '
+                           'this account to inform you when your environment ready)'
     },
 
     'hipchat_token': {
-        'prompt_question': 'Please enter the token of hipchat room'
+        'prompt_question':
+            'Please enter the token of your Hipchat with scope "sendmessage"'
     },
 })
 
-project_setting = [
+platform_count = [
     'ubuntu_1404_count',
     'windows_2008_r2_count',
     'windows_2012_r2_count'
-]
-
-default_settings = {
-    'search-head': 0,
-    'indexer': 0,
-    'indexer-cluster-master': False,
-    'indexer-cluster-peer': 0,
-    'indexer-cluster-search-head': 0,
-    'search-head-cluster-member': 0,
-    'search-head-cluster-deployer': 0,
-    'search-head-cluster-first-captain': False,
-    'central-license-master': False,
-    'central-license-slave': 0,
-    'deployment-server': False,
-    'deployment-client': 0,
-    'windows-universal-forwarder': 0,
-    'ubuntu-universal-forwarder': 0,
-    'roles_count': []
-}
-
-# the name here need to match name under
-# salt/file_base/orchestration
-splunk_architectures = [
-    sls.replace(".sls", "") for sls in os.listdir(
-        os.path.join(file_path, "salt", "file_base", "orchestration"))
 ]
 
 
@@ -83,20 +51,7 @@ def ch_project_folder(project_name):
     os.chdir(os.path.join(project_root, project_name))
 
 
-def update_sls(path, options):
-    '''
-    update sls files
-    '''
-    with open(path, "r") as f:
-        settings = yaml.load(f)
-    settings.update(options)
-
-    with open(path, "w") as f:
-        yaml.dump(settings, f, default_flow_style=False)
-
-
 class GlobalSetting:
-
     def __init__(self):
         pass
 
@@ -126,11 +81,10 @@ class GlobalSetting:
 
 
 class ProjectSetting:
-
-    def __init__(self, project_name):
+    def __init__(self):
         self.data = dict()
-        self.proj_name = project_name
-        self.setting_file_path = settings_path_template.format(p=project_name)
+        # self.proj_name = project_name
+        self.setting_file_path = setting_filename
         if os.path.exists(self.setting_file_path):
             with open(self.setting_file_path) as f:
                 self.data = yaml.load(f)
@@ -149,125 +103,72 @@ class ProjectSetting:
         return self.data
 
 
-def _create_project(proj_name):
-    project_dir = os.path.join(project_root, proj_name)
-    if os.path.isdir(project_dir):
-        click.echo(click.style("the project %s exists" % proj_name, fg='red'))
-        exit(1)
-    else:
-        salt_path = os.path.join(file_path, "salt")
-        shutil.copytree(salt_path, os.path.join(project_dir, 'salt'))
-
-        tf_path = os.path.join(file_path, "terraform", "splunk.tf")
-        shutil.copy(tf_path, project_dir)
-
-        deploy_minion_py = os.path.join(file_path, 'saltminion_deployer.py')
-        shutil.copy(deploy_minion_py, project_dir)
-
-        deploy_minion_py = os.path.join(file_path, 'terraform.py')
-        shutil.copy(deploy_minion_py, project_dir)
-
-
-def _get_vagrant_folder():
-    _template_folder = os.path.abspath(os.path.dirname(__file__))
-    return os.path.join(_template_folder, vagrant_splunk_sub_module)
-
-
 class State(object):
-
-    def run(self):
-        raise NotImplementedError
-
-    def next(self):
-        return None
-
-    def dump_settings(self):
-        '''
-        dump settings to settings.yml
-        '''
-        settings = os.path.join(
-            settings_path_template.format(p=self.data['project_name']))
-
-        for platform in project_setting:
-            if self.data['platform'] in platform:
-                self.data[platform] = len(self.data['roles_count'])
-            else:
-                self.data[platform] = 0
-
-            if 'ubuntu' in platform:
-                self.data[platform] = self.data[platform] + \
-                                      self.data['ubuntu-universal-forwarder']
-            elif 'windows_2012' in platform:
-                self.data[platform] = self.data[platform] + \
-                                      self.data['windows-universal-forwarder']
-
-        for i in range(self.data['ubuntu-universal-forwarder']):
-            self.data['roles_count'].append(['ubuntu-universal-forwarder'])
-        for i in range(self.data['windows-universal-forwarder']):
-            self.data['roles_count'].append(['windows-universal-forwarder'])
-
-        with open(settings, "w") as yml_file:
-            yaml.dump(self.data, yml_file, default_flow_style=False)
-
-
-class StateMachine(object):
-
-    def __init__(self, initial_state):
-        self.current_state = initial_state
-
-    def run(self):
-        self.current_state.run()
-
-    def run_all(self):
-        while True:
-            self.current_state.run()
-            self.current_state = self.current_state.next()
-            if self.current_state is None:
-                break
-
-
-class New(State):
-
-    '''
-    State for creating a new project
-    '''
-
-    def __init__(self):
-        self.data = default_settings
-
-    def run(self):
-        prompt = click.style("Please enter the project name", fg='yellow')
-        proj_name = click.prompt(prompt)
-        _create_project(proj_name)
-
-        self.data['project_name'] = str(proj_name)
-
-    def next(self):
-        '''
-        '''
-        global_setting = GlobalSetting()
-        if global_setting.is_setting_missed():
-            return SetGlobal(self.data)
-        else:
-            return SplunkVersion(self.data)
-
-
-class SetGlobal(State):
-    '''
-    State for global value settings, get username, aws_access_key....
-    '''
-
     def __init__(self, data):
         self.data = data
 
     def run(self):
+        raise NotImplementedError
+
+    def get_next_state(self):
+        raise NotImplementedError
+
+
+class StateMachine(object):
+    def __init__(self, initial_state):
+        self.current_state = initial_state
+
+    def run_all(self):
+        while True:
+            self.current_state.run()
+            self.current_state = self.current_state.get_next_state()
+            if not self.current_state:
+                break
+
+
+class ProjectCreation(State):
+    '''
+    State for creating a new project
+    '''
+    def run(self):
+
+        while True:
+            prompt = click.style("Please enter the project name", fg='yellow')
+            proj_name = click.prompt(prompt)
+            project_dir = os.path.join(project_root, proj_name)
+            if os.path.isdir(project_dir):
+                msg = click.style("the project %s exists" % proj_name, fg='red')
+                click.echo(msg)
+            else:
+                self.data['project_name'] = str(proj_name)
+                break
+
+    def get_next_state(self):
+        '''
+        '''
+        global_setting = GlobalSetting()
+        if global_setting.is_setting_missed():
+            return GlobalConfiguration(self.data)
+        else:
+            return SplunkVersion(self.data)
+
+
+class GlobalConfiguration(State):
+    '''
+    State for global value settings, get username, aws_access_key....
+    '''
+
+    def run(self):
+        click.echo('Missing global setting values, '
+                   'please answer the following question')
+
         for key, value in global_stetting_list.items():
             default = keyring.get_password('system', key)
             prompt = value['prompt_question']
             input_value = click.prompt(prompt, default=default)
             GlobalSetting.set_value(key, input_value)
 
-    def next(self):
+    def get_next_state(self):
         return SplunkVersion(self.data)
 
 
@@ -275,242 +176,357 @@ class SplunkVersion(State):
     '''
     State for splunk version or package url
     '''
-
-    def __init__(self, data):
-        self.data = data
-
-    def run(self):
-        prompt = click.style("Plese enter Splunk version or package url",
-                             fg='yellow')
-        splunk_version = str(click.prompt(prompt))
-        file_path = pillar_path_template.format(
-            p=self.data['project_name'], s="splunk.sls")
-        update_sls(file_path, {'version': splunk_version})
-
-    def next(self):
-        return SplunkPlatform(self.data)
-
-
-class SplunkPlatform(State):
-
-    def __init__(self, data):
-        self.data = data
+    def url_exists(self, path):
+        try:
+            r = requests.head(path)
+            return r.status_code == requests.codes.ok
+        except MissingSchema as err:
+            log.error(err)
+            return False
 
     def run(self):
-        platform_arr = [p.replace("_count", "") for p in project_setting]
-        prompt = click.style("Please select Splunk platform\n", fg='yellow')
+        # take no splunk here
+        splunk_version = ""
+        while True:
+            question = "Please enter package url(or empty for no splunk)"
+            prompt = click.style(question, fg='yellow')
+            splunk_version = click.prompt(prompt, default="", show_default=False)
+            if not splunk_version:
+                break
+
+            if self.url_exists(splunk_version):
+                break
+
+            msg = 'the url you enter is not valid or reachable, ' \
+                  'please try again'
+            click.echo(msg)
+
+        self.data['splunk_version'] = str(splunk_version).strip()
+
+    def get_next_state(self):
+        return OperationSystem(self.data)
+
+
+class MachineOnly(State):
+    def run(self):
+        question = 'How many instances do you want?'
+        instance_num = click.prompt(question, default=1)
+        self.data['instance_count'] = instance_num
+
+    def get_next_state(self):
+        return OutputSettings(self.data)
+
+
+class OperationSystem(State):
+    def run(self):
+        platform_arr = [p.replace("_count", "") for p in platform_count]
+        prompt = click.style("Please select operation system\n", fg='yellow')
 
         for idx, platform in enumerate(platform_arr):
-            prompt = prompt + "  [{d:1d}] {p}\n".format(
+            prompt += "  [{d:1d}] {p}\n".format(
                 d=platform_arr.index(platform), p=platform)
 
         prompt += 'default is'
 
-        index = click.prompt(prompt, type=int, default=0)
-        platform = platform_arr[index]
-        self.data['platform'] = platform
+        while True:
+            index = click.prompt(prompt, type=int, default=0)
+            if index >= len(platform_arr) or index < 0:
+                click.echo('Wrong value, try again...')
+                continue
 
-        click.echo(click.style(platform, fg='green') + " is selected")
-        click.echo("")
+            platform = platform_arr[index]
+            self.data.update({'operation_system': platform})
+            click.echo(click.style(platform, fg='green') + " is selected")
+            click.echo("")
+            break
 
-    def next(self):
-        return Indexers(self.data)
+    def get_next_state(self):
+        if self.data['splunk_version']:
+            return Indexers(self.data)
+        else:
+            return MachineOnly(self.data)
 
 
 class Indexers(State):
-
-    def __init__(self, data):
-        self.data = data
-
     def run(self):
         prompt = click.style(
             "How many indexer do you want?", fg='yellow')
-        indexer_count = click.prompt(prompt, type=int, default=2)
-        self.data['indexer'] = indexer_count
+        indexer_count = click.prompt(prompt, type=int, default=1)
+        self.data['indexer_count'] = indexer_count
+        self.data['instance_count'] += indexer_count
+        self.data['roles_count'].extend(
+            [['indexer'] for x in range(indexer_count)])
 
-    def next(self):
-        if self.data['indexer'] > 1:
+    def get_next_state(self):
+        if self.data['indexer_count'] > 1:
             return IndexerCluster(self.data)
         else:
             return SearchHead(self.data)
 
 
 class IndexerCluster(State):
-
-    def __init__(self, data):
-        self.data = data
-
     def run(self):
         prompt = click.style(
-            "Do you want indexer cluster? (Y/N)", fg='yellow')
-        indexer_cluster = click.prompt(prompt, type=bool, default='Y')
-        self.data['indexer-cluster-master'] = indexer_cluster
+            "Do you want indexer cluster?", fg='yellow')
+        is_indexer_cluster = click.confirm(prompt, default=True)
 
-        indexer_count = self.data['indexer']
-        if indexer_cluster:
-            self.data['roles_count'].append(['indexer-cluster-master'])
-            self.data['indexer-cluster-peer'] = indexer_count
-            self.data['indexer'] = 0
-            for i in range(indexer_count):
-                self.data['roles_count'].append(['indexer-cluster-peer'])
+        self.data.update({'is_indexer_cluster_enable': is_indexer_cluster})
 
-            prompt = "Replication factor for indexer cluster:"
-            replication_factor = click.prompt(prompt, type=int, default=2)
+        if not is_indexer_cluster:
+            return
 
-            prompt = "Search factor for indexer cluster:"
-            search_factor = click.prompt(prompt, type=int, default=2)
+        self.data['roles_count'].append(['indexer-cluster-master'])
 
-            sls = pillar_path_template.format(
-                p=self.data['project_name'], s="indexer_cluster.sls")
-            update_sls(sls, {'replication_factor': replication_factor,
-                             'search_factor': search_factor})
-        else:
-            for i in range(indexer_count):
-                self.data['roles_count'].append(['indexer'])
+        for roles in self.data['roles_count']:
+            if 'indexer' in roles:
+                roles.append('indexer-cluster-peer')
 
-    def next(self):
+        prompt = "Replication factor for indexer cluster:"
+        replication_factor = click.prompt(prompt, type=int, default=2)
+        obj = {'indexer_cluster': {'replication_factor': replication_factor}}
+        self.data.update(obj)
+
+        prompt = "Search factor for indexer cluster:"
+        search_factor = click.prompt(prompt, type=int, default=2)
+        self.data['indexer_cluster']['search_factor'] = search_factor
+
+    def get_next_state(self):
         return SearchHead(self.data)
 
 
 class SearchHead(State):
-
-    def __init__(self, data):
-        self.data = data
-
     def run(self):
-        prompt = click.style(
-            "How many search head do you want?", fg='yellow')
-        search_head_count = click.prompt(prompt, type=int, default=2)
-        self.data['search-head'] = search_head_count
+        prompt = click.style("How many search head do you want?", fg='yellow')
+        search_head_count = click.prompt(prompt, type=int, default=1)
+        self.data.update({'search_head_count': search_head_count})
+        role_arrays = [['search-head'] for x in range(search_head_count)]
+        self.data['roles_count'].extend(role_arrays)
 
-    def next(self):
-        if self.data['search-head'] > 1:
+    def get_next_state(self):
+        if self.data['search_head_count'] > 1:
             return SearchHeadCluster(self.data)
         else:
             return UniversalForwarder(self.data)
 
 
 class SearchHeadCluster(State):
-
-    def __init__(self, data):
-        self.data = data
-
     def run(self):
-        prompt = click.style(
-            "Do you want search head cluster? (Y/N)", fg='yellow')
-        search_head_cluster = click.prompt(prompt, type=bool, default='Y')
-        self.data['search-head-cluster-deployer'] = search_head_cluster
+        prompt = click.style("Do you want search head cluster?", fg='yellow')
+        is_search_head_cluster = click.confirm(prompt, default=True)
+        self.data.update(
+            {'is_search_head_cluster_enable': is_search_head_cluster})
 
-        search_head_count = self.data['search-head']
-        if search_head_cluster:
-            self.data['roles_count'].append(['search-head-cluster-deployer'])
-            self.data['search-head-cluster-first-captain'] = True
-            self.data['search-head-cluster-member'] = search_head_count
-            self.data['search-head'] = 0
+        if not is_search_head_cluster:
+            return
 
-            for i in range(search_head_count):
-                # set the first member as captain
-                if 0 == i:
-                    self.data['roles_count'].append(
-                        ['search-head-cluster-member',
-                         'search-head-cluster-first-captain'])
-                else:
-                    self.data['roles_count'].append(
-                        ['search-head-cluster-member'])
+        self.data['roles_count'].append(['search-head-cluster-deployer'])
+        is_captain_created = False
+        for roles in self.data['roles_count']:
+            if 'search-head' in roles:
+                roles.append('search-head-cluster-member')
+                if not is_captain_created:
+                    roles.append('search-head-cluster-first-captain')
+                    is_captain_created = True
 
-            prompt = "Replication factor for search head cluster:"
-            replication_factor = click.prompt(prompt, type=int, default=2)
+        prompt = "Replication factor for search head cluster:"
+        replication_factor = click.prompt(prompt, type=int, default=2)
+        self.data.update({
+            'search_head_cluster':
+                {'replication_factor': replication_factor}
+        })
 
-            sls = pillar_path_template.format(
-                p=self.data['project_name'], s="searchhead_cluster.sls")
-            update_sls(sls, {'replication_factor': replication_factor})
-
-        else:
-            if self.data['indexer-cluster-master']:
-                self.data['search-head'] = 0
-                self.data['indexer-cluster-search-head'] = search_head_count
-                for i in range(search_head_count):
-                    self.data['roles_count'].append(
-                        ['indexer-cluster-search-head'])
-            else:
-                for i in range(search_head_count):
-                    self.data['roles_count'].append(['search-head'])
-
-    def next(self):
+    def get_next_state(self):
         return UniversalForwarder(self.data)
 
 
 class UniversalForwarder(State):
-
-    def __init__(self, data):
-        self.data = data
-
     def run(self):
         # ask ubuntu and windows only
-        prompt = click.style(
-            "How many ubuntu universal forwarder do you want?",
-            fg='yellow')
-        ubuntu_uf = click.prompt(prompt, type=int, default=0)
-        self.data['ubuntu-universal-forwarder'] = ubuntu_uf
+        prompt = click.style("How many universal forwarder do you want?",
+                             fg='yellow')
+        uf_count = click.prompt(prompt, type=int, default=0)
+        self.data['roles_count'].extend(
+            [['universal-forwarder'] for x in range(uf_count)])
 
-        prompt = click.style(
-            "How many windows universal forwarder do you want?",
-            fg='yellow')
-        windows_uf = click.prompt(prompt, type=int, default=0)
-        self.data['windows-universal-forwarder'] = windows_uf
+        self.data.update({'universal_forwarder_count': uf_count})
 
-    def next(self):
-        if self.data['ubuntu-universal-forwarder'] + \
-                self.data['windows-universal-forwarder'] == 0 \
-                and self.data['search-head-cluster-deployer'] \
-                and self.data['indexer-cluster-master']:
+    def get_next_state(self):
+        cluster_enabled = self.data['is_indexer_cluster_enable'] and self.data[
+            'is_search_head_cluster_enable']
+
+        if cluster_enabled and self.data['universal_forwarder_count'] == 0:
             return LicenseMaster(self.data)
         else:
             return Deployment(self.data)
 
 
 class Deployment(State):
-
     '''
     This stats stands for configuring splunk deployment server-client
     '''
 
-    def __init__(self, data):
-        self.data = data
-
     def run(self):
-        prompt = click.style(
-            "Do you need deployment server? (Y/N)", fg='yellow')
-        deployment_server = click.prompt(prompt, type=bool, default='Y')
+        prompt = click.style("Do you need a deployment server?", fg='yellow')
+        deployment_server = click.confirm(prompt, default=False)
         self.data['deployment-server'] = deployment_server
 
-        if deployment_server:
-            self.data['roles_count'].append(['deployment-server'])
+        if not deployment_server:
+            return
 
-            prompt = click.style(
-                "How many deployment client do you want ", fg='yellow')
-            deployment_client = click.prompt(prompt, type=int, default=2)
-            self.data['deployment-client'] = deployment_client
-            for i in range(deployment_client):
-                self.data['roles_count'].append(['deployment-client'])
+        self.data['roles_count'].append(['deployment-server'])
 
-    def next(self):
+        for roles in self.data['roles_count']:
+            if 'indexer' in roles and 'indexer-cluster-peer' not in roles:
+                roles.append('deployment-client')
+            elif 'search-head' in roles and 'search-head-cluster-member' not in roles:
+                roles.append('deployment-client')
+            elif 'universal-forwarder' in roles:
+                roles.append('deployment-client')
+
+    def get_next_state(self):
         return LicenseMaster(self.data)
 
 
 class LicenseMaster(State):
-
-    def __init__(self, data):
-        self.data = data
+    def get_next_state(self):
+        return OutputSettings(self.data)
 
     def run(self):
-        prompt = click.style(
-            "Do you need license master? (Y/N)", fg='yellow')
-        license_master = click.prompt(prompt, type=bool, default='Y')
-        self.data['central-license-master'] = license_master
-        if license_master:
-            self.data['roles_count'].append(['central-license-master'])
-            self.data['roles_count'].append(['central-license-slave'])
-            self.data['central-license-slave'] = True
+        prompt = click.style("Do you need a central license master?", fg='yellow')
+        license_master = click.confirm(prompt, default=True)
 
-        self.dump_settings()
+        if not license_master:
+            return
+
+        while True:
+            prompt = "where's the license file you want to upload?"
+            license_path = click.prompt(prompt)
+            if os.path.exists(license_path):
+                self.data.update({'license_path': license_path})
+                break
+            else:
+                msg = click.style('the file path is not valid', fg='red')
+                click.echo(msg)
+
+        # right now we use a independent license master
+        self.data['roles_count'].append(['central-license-master'])
+        for roles in self.data['roles_count']:
+            if 'search-head' in roles or 'indexer' in roles:
+                roles.append('central-license-slave')
+
+
+class OutputSettings(State):
+    def _create_project(self, proj_name):
+        project_dir = os.path.join(project_root, proj_name)
+        os.mkdir(project_dir)
+        file_path = os.path.abspath(os.path.dirname(__file__))
+
+        # copy tf file
+        tf_path = os.path.join(file_path, "terraform", "splunk.tf")
+        shutil.copy(tf_path, project_dir)
+
+        # create ssh key for project
+        key = RSA.generate(2048)
+        public_key_name = ssh_private_key_name + '.pub'
+        private_key_path = os.path.join(project_dir, ssh_private_key_name)
+        ssh_public_key_path = os.path.join(project_dir, public_key_name)
+        with open(private_key_path, 'w') as content_file:
+            os.chmod(private_key_path, 0600)
+            content_file.write(key.exportKey('PEM'))
+        pubkey = key.publickey()
+
+        with open(ssh_public_key_path, 'w') as content_file:
+            content_file.write(pubkey.exportKey('OpenSSH'))
+
+        # create sync folder
+        sync_folder_path = os.path.join(project_dir, sync_folder)
+        os.mkdir(sync_folder_path)
+        # copy ssh key to be synced
+        shutil.copy(private_key_path, sync_folder_path)
+
+
+    def run(self):
+        log.debug(self.data)
+
+        project_name_ = self.data['project_name']
+        self._create_project(project_name_)
+
+        formatted_data = dict()
+        # change pillar data
+        # splunk version
+        # splunk SH/IDX cluster replication factor
+        # license path
+
+        splunk_sls = dict()
+        splunk_sls.update({'splunk_version': self.data['splunk_version']})
+        if 'indexer_cluster' in self.data:
+            splunk_sls.update({'indexer_cluster': self.data['indexer_cluster']})
+
+        if 'search_head_cluster' in self.data:
+            splunk_sls.update({'search_head_cluster': self.data['search_head_cluster']})
+
+        # copy license file
+        if 'license_path' in self.data:
+            shutil.copy(self.data['license_path'], os.path.join(project_root, project_name_, sync_folder))
+            self.data['license_path'] = \
+                'salt://' + os.path.basename(self.data['license_path'])
+            splunk_sls.update({'license_path': self.data['license_path']})
+
+        formatted_data.update({'pillar': {'splunk.sls': splunk_sls}})
+
+        platform_short_arr = {'windows_2012_r2': '2012r2',
+                              'windows_2008_r2': '2008r2',
+                              'ubuntu_1404': 'ubun14'}
+
+        # minion grains data
+        # grains role data
+        # create hostname like this 'random*5'-'<os>*6'-'digit*3'
+        # roles_obj = dict()
+        # project_id = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(4))
+        # for idx, r in enumerate(self.data['roles_count']):
+        #     os_name = platform_short_arr[self.data['operation_system']]
+        #     minion_id = project_id + '-' + os_name + '-' +'{num:03d}'.format(num=idx)
+        #     roles_obj.update({minion_id: r})
+
+        formatted_data.update({'roles_count': self.data['roles_count']})
+
+        # master terraform variable
+        # dump data for remote terraform
+        terraform_obj = dict()
+        instance_count = self.data['instance_count'] if (len(self.data['roles_count']) == 0) else len(self.data['roles_count'])
+        os_count_obj = {self.data['operation_system'] + '_count': instance_count}
+        rdp_password = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
+        terraform_obj['terraform'] = os_count_obj
+        terraform_obj['terraform'].update({'rdp_password': rdp_password})
+        terraform_obj['terraform']['access_key'] = keyring.get_password('system', 'aws_access_key')
+        terraform_obj['terraform']['secret_key'] = keyring.get_password('system', 'aws_secret_key')
+        terraform_obj['terraform']['username'] = keyring.get_password('system', 'username')
+        terraform_obj['terraform']['project_name'] = project_name_
+
+
+        formatted_data.update(terraform_obj)
+
+        hipchat_obj = {
+            'hipchat':
+                {'hipchat_token': keyring.get_password('system', 'hipchat_token'),
+                 'username': keyring.get_password('system', 'username'),
+                 'project_name': project_name_
+                 }
+        }
+
+        formatted_data.update(hipchat_obj)
+
+        # salt master
+        salt_master_obj = {
+            'salt_master': {'instance_count': instance_count}
+        }
+
+        formatted_data.update(salt_master_obj)
+
+        setting_path = os.path.join(project_root, project_name_, setting_filename)
+
+        with open(setting_path, "w") as f:
+            yaml.safe_dump(formatted_data, f, default_flow_style=False)
+
+    def get_next_state(self):
+        return None
