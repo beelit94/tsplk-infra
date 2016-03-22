@@ -145,7 +145,7 @@ class TerraformSaltMaster:
 
         ssh = self._ssh_connect()
 
-        cmd = 'sudo python saltminion_deployer.py destroy > tsplk.log 2>&1 &'
+        cmd = 'sudo python saltminion_deployer.py destroy'
         stdin, stdout, stderr = ssh.exec_command(cmd)
         out = stdout.read()
         err = stderr.read()
