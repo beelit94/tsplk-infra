@@ -120,8 +120,8 @@ report bug to project SQA with component = Salt, [report here](https://jira.splu
 
 tsplk is a command line tool depend on several projects
 
-1. [salty-packer](https://git.splunk.com/users/ftan/repos/packer-salty-vagrant/browse)
-2. [salty-splunk](https://git.splunk.com/projects/SUSTAIN/repos/salt/browse)
+1. [packer-for-tsplk](https://git.splunk.com/users/ftan/repos/packer-for-tsplk/browse)
+2. [salty-splunk](https://git.splunk.com/projects/SUSTAIN/repos/salty-splunk/browse)
 
 ### How to release
 
