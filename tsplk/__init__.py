@@ -32,12 +32,7 @@ global_stetting_list = OrderedDict({
         'prompt_question': 'Please enter your employee account'
                            '(make sure you get it right, hipchat will use '
                            'this account to inform you when your environment ready)'
-    },
-
-    'hipchat_token': {
-        'prompt_question':
-            'Please enter the token of your Hipchat with scope "sendmessage"'
-    },
+    }
 })
 
 platform_count = [
@@ -204,7 +199,7 @@ class SplunkVersion(State):
         self.data['splunk_version'] = str(splunk_version).strip()
 
     def get_next_state(self):
-        return OperationSystem(self.data)
+        return OperatingSystem(self.data)
 
 
 class MachineOnly(State):
@@ -217,10 +212,10 @@ class MachineOnly(State):
         return OutputSettings(self.data)
 
 
-class OperationSystem(State):
+class OperatingSystem(State):
     def run(self):
         platform_arr = [p.replace("_count", "") for p in platform_count]
-        prompt = click.style("Please select operation system\n", fg='yellow')
+        prompt = click.style("Please select an operating system\n", fg='yellow')
 
         for idx, platform in enumerate(platform_arr):
             prompt += "  [{d:1d}] {p}\n".format(
@@ -235,7 +230,7 @@ class OperationSystem(State):
                 continue
 
             platform = platform_arr[index]
-            self.data.update({'operation_system': platform})
+            self.data.update({'operating_system': platform})
             click.echo(click.style(platform, fg='green') + " is selected")
             click.echo("")
             break
@@ -250,7 +245,7 @@ class OperationSystem(State):
 class Indexers(State):
     def run(self):
         prompt = click.style(
-            "How many indexer do you want?", fg='yellow')
+            "How many indexers do you want?", fg='yellow')
         indexer_count = click.prompt(prompt, type=int, default=1)
         self.data['indexer_count'] = indexer_count
         self.data['instance_count'] += indexer_count
@@ -270,7 +265,7 @@ class IndexerCluster(State):
             "Do you want indexer cluster?", fg='yellow')
         is_indexer_cluster = click.confirm(prompt, default=True)
 
-        self.data.update({'is_indexer_cluster_enable': is_indexer_cluster})
+        self.data.update({'is_indexer_cluster_enabled': is_indexer_cluster})
 
         if not is_indexer_cluster:
             return
@@ -314,7 +309,7 @@ class SearchHeadCluster(State):
         prompt = click.style("Do you want search head cluster?", fg='yellow')
         is_search_head_cluster = click.confirm(prompt, default=True)
         self.data.update(
-            {'is_search_head_cluster_enable': is_search_head_cluster})
+            {'is_search_head_cluster_enabled': is_search_head_cluster})
 
         if not is_search_head_cluster:
             return
@@ -342,7 +337,7 @@ class SearchHeadCluster(State):
 class UniversalForwarder(State):
     def run(self):
         # ask ubuntu and windows only
-        prompt = click.style("How many universal forwarder do you want?",
+        prompt = click.style("How many universal forwarders do you want?",
                              fg='yellow')
         uf_count = click.prompt(prompt, type=int, default=0)
         self.data['roles_count'].extend(
@@ -351,8 +346,8 @@ class UniversalForwarder(State):
         self.data.update({'universal_forwarder_count': uf_count})
 
     def get_next_state(self):
-        cluster_enabled = self.data['is_indexer_cluster_enable'] and self.data[
-            'is_search_head_cluster_enable']
+        cluster_enabled = self.data['is_indexer_cluster_enabled'] and self.data[
+            'is_search_head_cluster_enabled']
 
         if cluster_enabled and self.data['universal_forwarder_count'] == 0:
             return LicenseMaster(self.data)
@@ -474,27 +469,13 @@ class OutputSettings(State):
 
         formatted_data.update({'pillar': {'splunk.sls': splunk_sls}})
 
-        platform_short_arr = {'windows_2012_r2': '2012r2',
-                              'windows_2008_r2': '2008r2',
-                              'ubuntu_1404': 'ubun14'}
-
-        # minion grains data
-        # grains role data
-        # create hostname like this 'random*5'-'<os>*6'-'digit*3'
-        # roles_obj = dict()
-        # project_id = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(4))
-        # for idx, r in enumerate(self.data['roles_count']):
-        #     os_name = platform_short_arr[self.data['operation_system']]
-        #     minion_id = project_id + '-' + os_name + '-' +'{num:03d}'.format(num=idx)
-        #     roles_obj.update({minion_id: r})
-
         formatted_data.update({'roles_count': self.data['roles_count']})
 
         # master terraform variable
         # dump data for remote terraform
         terraform_obj = dict()
         instance_count = self.data['instance_count'] if (len(self.data['roles_count']) == 0) else len(self.data['roles_count'])
-        os_count_obj = {self.data['operation_system'] + '_count': instance_count}
+        os_count_obj = {self.data['operating_system'] + '_count': instance_count}
         rdp_password = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
         terraform_obj['terraform'] = os_count_obj
         terraform_obj['terraform'].update({'rdp_password': rdp_password})
@@ -502,7 +483,6 @@ class OutputSettings(State):
         terraform_obj['terraform']['secret_key'] = keyring.get_password('system', 'aws_secret_key')
         terraform_obj['terraform']['username'] = keyring.get_password('system', 'username')
         terraform_obj['terraform']['project_name'] = project_name_
-
 
         formatted_data.update(terraform_obj)
 

@@ -73,13 +73,6 @@ resource "aws_instance" "ubuntu-salt-master" {
     destination = "settings.yml"
   }
 
-//  provisioner "remote-exec" {
-//    inline = [
-//      # call up the rest minion
-//      "echo test",
-//      #"nohup sudo python saltminion_deployer.py up > tsplk.log 2>&1 &"
-//    ]
-//  }
 }
 
 output "salt-master-public-ip" {
