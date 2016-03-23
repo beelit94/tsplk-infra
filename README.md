@@ -29,8 +29,7 @@ Right now we only test on MAC.
 
     if you have homebrew installed,
 
-        brew install caskroom/cask/brew-cask
-        brew cask install terraform
+        brew install terraform
 
     if you don't have homebrew installed, follow [this](https://www.terraform.io/intro/getting-started/install.html)
 
