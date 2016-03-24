@@ -196,7 +196,7 @@ class SplunkVersion(State):
                   'please try again'
             click.echo(msg)
 
-        self.data['splunk_version'] = str(splunk_version).strip()
+        self.data['version'] = str(splunk_version).strip()
 
     def get_next_state(self):
         return OperatingSystem(self.data)
@@ -236,7 +236,7 @@ class OperatingSystem(State):
             break
 
     def get_next_state(self):
-        if self.data['splunk_version']:
+        if self.data['version']:
             return Indexers(self.data)
         else:
             return MachineOnly(self.data)
@@ -453,7 +453,7 @@ class OutputSettings(State):
         # license path
 
         splunk_sls = dict()
-        splunk_sls.update({'splunk_version': self.data['splunk_version']})
+        splunk_sls.update({'version': self.data['version']})
         if 'indexer_cluster' in self.data:
             splunk_sls.update({'indexer_cluster': self.data['indexer_cluster']})
 
