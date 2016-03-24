@@ -32,7 +32,12 @@ global_stetting_list = OrderedDict({
         'prompt_question': 'Please enter your employee account'
                            '(make sure you get it right, hipchat will use '
                            'this account to inform you when your environment ready)'
-    }
+    },
+
+    'hipchat_token': {
+        'prompt_question':
+            'Please enter the token of your Hipchat with scope "sendmessage"'
+    },
 })
 
 platform_count = [
