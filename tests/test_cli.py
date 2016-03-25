@@ -68,8 +68,5 @@ def test_wiz(runner, project, os_system, structure):
         assert searchhead_2["platform"] == os_system
 
 
-def test_salt_master_up():
-
-
 
 

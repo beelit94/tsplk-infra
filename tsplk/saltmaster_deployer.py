@@ -7,7 +7,7 @@ import logging
 import json
 
 minion_info_remote_path = 'minion_info'
-minion_info_local_path = 'remote_state'
+minion_info_local_path = 'minion_info'
 
 log = logging.getLogger()
 
@@ -30,6 +30,7 @@ class TerraformSaltMaster:
             state='salt_master_state',
             variables=self.master_variables
         )
+        self.tf.read_state_file()
 
     def is_master_up(self):
         """
@@ -37,7 +38,22 @@ class TerraformSaltMaster:
         re-calling it if you know your status is still the same
         :return:
         """
-        return self.tf.is_any_aws_instance_alive()
+        if not os.path.exists(self.tf.state_filename):
+            return False
+
+        # todo refresh takes too long, how to check is master up quicker?
+        #return self.tf.is_any_aws_instance_alive()
+        try:
+            ip = self.tf.get_output_value('salt-master-public-ip')
+            if not ip:
+                return False
+        except Exception as err:
+            log.error(err)
+            return False
+
+        log.debug('master is up')
+        return True
+
 
     def is_minions_up(self):
         if not self.is_master_up():
@@ -49,7 +65,7 @@ class TerraformSaltMaster:
 
         ssh = self._ssh_connect()
 
-        cmd = 'cat terraform.tfstate'
+        cmd = 'cat minion_state'
         stdin, stdout, stderr = \
             ssh.exec_command(cmd)
 
@@ -168,22 +184,21 @@ class TerraformSaltMaster:
 
         :return: in dict
         """
-        if not self.is_minions_up():
-            return None
 
         if os.path.exists(minion_info_local_path):
+            log.debug(minion_info_local_path + ' founded.')
             with open(minion_info_local_path) as f:
                 instances = yaml.load(f)
             return instances
 
+        log.debug(minion_info_local_path + 'not found, scp it.')
         ssh = self._ssh_connect()
         try:
             with SCPClient(ssh.get_transport()) as scp:
                 scp.get(remote_path=minion_info_remote_path,
                         local_path=minion_info_local_path)
         except SCPException:
-            # todo logging
-            print('minions are not ready yet')
+            log.error('minions are not ready yet')
             return None
         finally:
             ssh.close()
@@ -197,6 +212,7 @@ class TerraformSaltMaster:
         if not self.is_master_up():
             return None
         public_ip = self.tf.get_output_value('salt-master-public-ip')
+        log.debug('public ip is: %s' % public_ip)
         return public_ip
 
     def _get_private_ip(self):

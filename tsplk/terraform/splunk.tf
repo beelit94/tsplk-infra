@@ -39,7 +39,7 @@ resource "aws_key_pair" "key" {
 }
 
 resource "aws_instance" "ubuntu-salt-master" {
-  ami = "ami-bd37dfdd"
+  ami = "ami-bceb00dc"
   instance_type = "${var.master_instance_type}"
   security_groups = ["terraform-salty-splunk"]
   tags {

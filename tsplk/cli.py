@@ -108,30 +108,40 @@ def status(project):
 
     salt_master = TerraformSaltMaster(master_var)
 
-    print_info = ['host', 'minion_id', 'role', 'ip']
+    print_info = ['minion_id', 'roles', 'public_ip', 'private_ip', 'instance_type']
     print_arr = []
-    print_arr.append(print_info)
+    # print_arr.append(print_info)
 
     if salt_master.is_master_up():
         master = [
-            '', 'salt-master', 'salt-master', salt_master.get_public_ip()
+            '', 'salt-master', salt_master.get_public_ip(), '', ''
         ]
         print_arr.append(master)
     else:
         click.echo('master is not up yet')
-
-    if not salt_master.is_minions_up():
-        click.echo('minion is not ready yet')
+        return
 
     info = salt_master.get_minions_info()
-    info = [] if info is None else info
-    for instance in info:
-        row = []
-        for title in print_info:
-            row.append(instance[title])
+    if not info:
+        click.echo('minion is not ready yet')
+        return
+
+    for key in info:
+        row = [key]
+        for title in print_info[1:]:
+            cell = info[key][title]
+            row.append(cell)
+
         print_arr.append(row)
 
-    table = tabulate.tabulate(print_arr)
+    # info = [] if info is None else info
+    # for instance in info:
+    #     row = []
+    #     for title in print_info:
+    #         row.append(instance[title])
+    #     print_arr.append(row)
+
+    table = tabulate.tabulate(print_arr, headers=print_info, tablefmt="fancy_grid")
     click.echo(table)
 
 
@@ -170,7 +180,7 @@ def browse(project, minion):
 
     master_var = create_master_variables(project)
     #
-    salt_master = TerraformSaltMaster(master_var, minion_var)
+    salt_master = TerraformSaltMaster(master_var)
 
     if len(minion) == 1:
         minion_to_be_connected = minion[0]
@@ -211,10 +221,6 @@ def version():
         click.echo('current version: %s' % ver)
 
 
-@click.command()
-def list():
-    click.echo(projects)
-
 
 @click.command()
 @click.argument("project", nargs=1, type=click.Choice(projects))
@@ -254,14 +260,13 @@ def ssh(project, minion):
     elif len(minion) == 1:
         minion_to_be_connected = minion[0]
         info = salt_master.get_minions_info()
-        for i in info:
-            if i['minion_id'] == minion_to_be_connected:
-                subprocess.call(
-                    ['ssh', '-i', ssh_key,
-                     '-o', 'StrictHostKeyChecking=no',
-                     'ubuntu@%s' % i['ip']])
-                return
-        click.echo('minion not exist')
+        try:
+            subprocess.call(
+                ['ssh', '-i', ssh_key,
+                 '-o', 'StrictHostKeyChecking=no',
+                 'ubuntu@%s' % info[minion_to_be_connected]['public_ip']])
+        except KeyError:
+            click.echo('minion not exist')
     else:
         click.echo('you could only connect to one minion at a time')
 
@@ -303,7 +308,6 @@ main.add_command(new)
 main.add_command(status)
 main.add_command(destroy)
 main.add_command(version)
-main.add_command(list)
 main.add_command(delete)
 main.add_command(ssh)
 main.add_command(config)

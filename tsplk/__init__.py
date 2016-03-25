@@ -268,7 +268,7 @@ class IndexerCluster(State):
     def run(self):
         prompt = click.style(
             "Do you want indexer cluster?", fg='yellow')
-        is_indexer_cluster = click.confirm(prompt, default=True)
+        is_indexer_cluster = click.confirm(prompt, default=False)
 
         self.data.update({'is_indexer_cluster_enabled': is_indexer_cluster})
 
@@ -299,20 +299,26 @@ class SearchHead(State):
         prompt = click.style("How many search head do you want?", fg='yellow')
         search_head_count = click.prompt(prompt, type=int, default=1)
         self.data.update({'search_head_count': search_head_count})
-        role_arrays = [['search-head'] for x in range(search_head_count)]
-        self.data['roles_count'].extend(role_arrays)
+
+        if self.data['is_indexer_cluster_enabled']:
+            role_arrays = [['search-head', 'indexer-cluster-search-head'] for x in range(search_head_count)]
+            self.data['roles_count'].extend(role_arrays)
+        else:
+            role_arrays = [['search-head'] for x in range(search_head_count)]
+            self.data['roles_count'].extend(role_arrays)
 
     def get_next_state(self):
         if self.data['search_head_count'] > 1:
             return SearchHeadCluster(self.data)
         else:
+            self.data.update({'is_search_head_cluster_enabled': False})
             return UniversalForwarder(self.data)
 
 
 class SearchHeadCluster(State):
     def run(self):
         prompt = click.style("Do you want search head cluster?", fg='yellow')
-        is_search_head_cluster = click.confirm(prompt, default=True)
+        is_search_head_cluster = click.confirm(prompt, default=False)
         self.data.update(
             {'is_search_head_cluster_enabled': is_search_head_cluster})
 
@@ -393,7 +399,7 @@ class LicenseMaster(State):
 
     def run(self):
         prompt = click.style("Do you need a central license master?", fg='yellow')
-        license_master = click.confirm(prompt, default=True)
+        license_master = click.confirm(prompt, default=False)
 
         if not license_master:
             return
