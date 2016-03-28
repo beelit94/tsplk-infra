@@ -47,7 +47,10 @@ platform_count = [
 
 
 def ch_project_folder(project_name):
-    os.chdir(os.path.join(project_root, project_name))
+    log.debug('project_root is : %s' % project_root)
+    project_folder = os.path.join(project_root, project_name)
+    log.debug('ch to project folder: %s' % project_folder)
+    os.chdir(project_folder)
 
 
 class GlobalSetting:
