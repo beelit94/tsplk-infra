@@ -263,6 +263,7 @@ class Indexers(State):
         if self.data['indexer_count'] > 1:
             return IndexerCluster(self.data)
         else:
+            self.data['is_indexer_cluster_enabled'] = False
             return SearchHead(self.data)
 
 

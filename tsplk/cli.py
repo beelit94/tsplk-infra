@@ -134,14 +134,9 @@ def status(project):
 
         print_arr.append(row)
 
-    # info = [] if info is None else info
-    # for instance in info:
-    #     row = []
-    #     for title in print_info:
-    #         row.append(instance[title])
-    #     print_arr.append(row)
-
-    table = tabulate.tabulate(print_arr, headers=print_info, tablefmt="fancy_grid")
+    table = tabulate.tabulate(print_arr,
+                              headers=print_info,
+                              tablefmt="fancy_grid")
     click.echo(table)
 
 
@@ -221,7 +216,6 @@ def version():
         click.echo('current version: %s' % ver)
 
 
-
 @click.command()
 @click.argument("project", nargs=1, type=click.Choice(projects))
 def delete(project):
@@ -230,11 +224,9 @@ def delete(project):
     '''
     project_path = os.path.join(project_root, project)
     ch_project_folder(project)
-    ps = ProjectSetting(project)
 
-    master_var = create_master_variables(project, ps)
-    minion_var = create_minion_variables(project, ps)
-    salt_master = TerraformSaltMaster(master_var, minion_var)
+    master_var = create_master_variables(project)
+    salt_master = TerraformSaltMaster(master_var)
     salt_master.destroy()
 
     shutil.rmtree(project_path)
@@ -281,21 +273,6 @@ def create_master_variables(project):
 
 def saltyhelper():
     raise NotImplementedError
-
-# def create_minion_variables(project, ps):
-#     variables = dict()
-#     variables.update(GlobalSetting.read_data())
-#     variables.update(ps.read_data())
-#     variables.update({'project_name': project})
-#
-#     variables['key_path'] = variables['key_name']
-#     variables['ubuntu_saltmaster_count'] = 0
-#     variables['salt_master_ip'] = None
-#     variables.update({'project_name': project})
-#     variables.pop('roles_count')
-#     variables.pop('splunk_architecture')
-#
-#     return variables
 
 # todo
 def check_terraform_version():
