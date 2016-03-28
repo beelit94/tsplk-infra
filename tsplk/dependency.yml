@@ -1,0 +1,5 @@
+salty-splunk-version: "0.3"
+windows-2008-r2-version: latest
+windows-2012-r2-version: latest
+ubuntu-1404-version: latest
+ubuntu-salt-master-version: latest

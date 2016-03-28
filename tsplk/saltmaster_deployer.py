@@ -25,6 +25,8 @@ class TerraformSaltMaster:
         if num > 80:
             self.master_variables['master_instance_type'] = 'r3.xlarge'
 
+        self.master_variables.update({'ubuntu-salt-master-version': project_data['salt_master']['ubuntu-salt-master-version']})
+
         self.tf = Terraform(
             targets=['aws_instance.ubuntu-salt-master'],
             state='salt_master_state',
@@ -173,7 +175,7 @@ class TerraformSaltMaster:
         ssh.close()
 
         if ret_code != 0:
-            log.debug('err: ' + err)
+            log.error('err: ' + err)
             raise EnvironmentError(err)
 
         if os.path.exists(minion_info_local_path):

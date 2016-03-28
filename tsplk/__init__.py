@@ -1,7 +1,6 @@
 import os
 import shutil
 import string
-
 import click
 import keyring
 import yaml
@@ -179,7 +178,10 @@ class SplunkVersion(State):
     def url_exists(self, path):
         try:
             r = requests.head(path)
-            return r.status_code == requests.codes.ok
+            # refer to
+            # http://stackoverflow.com/questions/16778435/python-check-if-website-exists
+            # check status < 400 to accept redirect url
+            return r.status_code < 400
         except MissingSchema as err:
             log.error(err)
             return False
@@ -484,16 +486,28 @@ class OutputSettings(State):
 
         # master terraform variable
         # dump data for remote terraform
+
+        dependency_info_path = os.path.abspath(__file__)
+        dependency_info_path = os.path.join(os.path.dirname(dependency_info_path), 'dependency.yml')
+        with open(dependency_info_path) as f:
+            dependency_info = yaml.load(f)
+
         terraform_obj = dict()
         instance_count = self.data['instance_count'] if (len(self.data['roles_count']) == 0) else len(self.data['roles_count'])
         os_count_obj = {self.data['operating_system'] + '_count': instance_count}
-        rdp_password = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
+
+        non_alpha = '!@'
+        rdp_password = random.choice(non_alpha) + random.choice(string.ascii_lowercase) + ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(13))
+
         terraform_obj['terraform'] = os_count_obj
         terraform_obj['terraform'].update({'rdp_password': rdp_password})
         terraform_obj['terraform']['access_key'] = keyring.get_password('system', 'aws_access_key')
         terraform_obj['terraform']['secret_key'] = keyring.get_password('system', 'aws_secret_key')
         terraform_obj['terraform']['username'] = keyring.get_password('system', 'username')
         terraform_obj['terraform']['project_name'] = project_name_
+        terraform_obj['terraform']['windows-2008-r2-version'] = dependency_info['windows-2008-r2-version']
+        terraform_obj['terraform']['windows-2012-r2-version'] = dependency_info['windows-2012-r2-version']
+        terraform_obj['terraform']['ubuntu-1404-version'] = dependency_info['ubuntu-1404-version']
 
         formatted_data.update(terraform_obj)
 
@@ -509,7 +523,12 @@ class OutputSettings(State):
 
         # salt master
         salt_master_obj = {
-            'salt_master': {'instance_count': instance_count}
+            'salt_master': {
+                'instance_count': instance_count,
+                'timeout': 3600,
+                'ubuntu-salt-master-version': dependency_info['ubuntu-salt-master-version'],
+                'salty-splunk-version': dependency_info['salty-splunk-version']
+            }
         }
 
         formatted_data.update(salt_master_obj)

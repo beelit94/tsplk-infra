@@ -13,6 +13,9 @@ variable "key_name" {
 variable "master_instance_type" {
   default = "m3.large"
 }
+variable "ubuntu-salt-master-version" {
+  default = "latest"
+}
 
 provider "atlas" {
   # You can also set the atlas token by exporting
@@ -30,7 +33,7 @@ provider "aws" {
 resource "atlas_artifact" "ubuntu-salt-master" {
   name = "splunk-sus-qa/ubuntu-1404-saltmaster"
   type = "amazon.ami"
-  version = "latest"
+  version = "${var.ubuntu-salt-master-version}"
 }
 
 resource "aws_key_pair" "key" {
@@ -39,7 +42,7 @@ resource "aws_key_pair" "key" {
 }
 
 resource "aws_instance" "ubuntu-salt-master" {
-  ami = "ami-bceb00dc"
+  ami = "${atlas_artifact.ubuntu-salt-master.metadata_full.ami_id}"
   instance_type = "${var.master_instance_type}"
   security_groups = ["terraform-salty-splunk"]
   tags {
