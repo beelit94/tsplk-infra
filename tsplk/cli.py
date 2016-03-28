@@ -98,7 +98,7 @@ def up(project):
 
 
 @click.command()
-@click.argument("project", nargs=1, type=click.Choice(projects))
+@click.argument("project", nargs=-1, type=click.Choice(projects))
 def status(project):
     '''
     Show the status of the machines of the given project

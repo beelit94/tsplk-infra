@@ -14,9 +14,9 @@ Right now we only test on MAC.
 ### Prerequsition
 1. _pipsi_ (optional)
 
-    > [pipsi](https://github.com/mitsuhiko/pipsi) is a wrapper around virtualenv and pip which installs scripts provided by python packages into separate virtualenvs to shield them from your system and each other. 
-    > This is a nice to have for user who use python command heavily. 
-    > However, there are several user report that they can't install it successfully. 
+    > [pipsi](https://github.com/mitsuhiko/pipsi) is a wrapper around virtualenv and pip which installs scripts provided by python packages into separate virtualenvs to shield them from your system and each other.
+    > This is a nice to have for user who use python command heavily.
+    > However, there are several user report that they can't install it successfully.
     > If you can't install it, you could just skip it.
 
         curl https://raw.githubusercontent.com/mitsuhiko/pipsi/master/get-pipsi.py | python
@@ -59,10 +59,10 @@ If you don't have pipsi installed,
 If you have pipsi installed,
 
     pipsi upgrade tsplk
-     
+
 If you don't have pipsi installed,
 
-    sudo pip install --upgrade tsplk 
+    sudo pip install --upgrade tsplk
 
 # Usage
 ### How to create a Splunk environment
@@ -98,6 +98,10 @@ to destroy all the VM you created, run
 to delete your project from project list, use
 
     tsplk delete <project_name>
+
+### to see all the commands which tsplk provides, run
+
+    tsplk --help
 
 # Examples
 ### Indexer clustering
