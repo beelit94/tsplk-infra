@@ -1,5 +1,5 @@
 import click
-from . import New, StateMachine, GlobalSetting, ProjectSetting, \
+from . import ProjectCreation, StateMachine, GlobalSetting, ProjectSetting, \
     ch_project_folder, project_root, global_stetting_list
 import os
 import shutil
@@ -35,7 +35,7 @@ if 'TSPLK_LOG' in os.environ:
 
 @click.group()
 def main():
-    """This tool is to create splunk ready environment."""
+    """This tool is to create a splunk ready environment."""
     pass
 
 
@@ -54,46 +54,32 @@ def config():
 @click.command()
 def new():
     '''
-    command for creating a new project
+    wizard of creating a new project
     '''
-    state = New()
+    default_settings = {
+        'instance_count': 0,
+        'roles_count': [],
+        'is_indexer_cluster_enable': False,
+        'is_search_head_cluster_enable': False,
+    }
+    state = ProjectCreation(default_settings)
     machine = StateMachine(state)
     machine.run_all()
 
 
 @click.command()
 @click.argument("project", nargs=1, type=click.Choice(projects))
-@click.option("--only-minion", "-m", is_flag=True,
-              help='if the master is up, only bring up the minions on master'
-                   'this is useful when you want to '
-                   'customized your salt files')
-def up(project, only_minion):
+def up(project):
     '''
-    bring up the machines of the given project
+    bring up and provision the machines within the project created by new command
+    :param project: name of project
     '''
+    import time
+    t0 = time.time()
 
     ch_project_folder(project)
-    ps = ProjectSetting(project)
-
-    master_var = create_master_variables(project, ps)
-    minion_var = create_minion_variables(project, ps)
-    salt_master = TerraformSaltMaster(master_var, minion_var)
-    # get value here since it takes time
-    is_master_up = salt_master.is_master_up()
-
-    def wait_for_minions_msg():
-        click.echo('Minions is deploying by salt-master')
-        click.echo("We'll send a message to Hipchat room tsplk when it's ready")
-
-    if only_minion and not is_master_up:
-        click.secho("You can't only up minion when master is not up",
-                    fg='red')
-        return
-
-    if only_minion:
-        salt_master.up_minion()
-        wait_for_minions_msg()
-        return
+    master_var = create_master_variables(project)
+    salt_master = TerraformSaltMaster(master_var)
 
     click.echo('Starting master...(this could take few minutes)')
     try:
@@ -103,9 +89,13 @@ def up(project, only_minion):
         click.echo(err)
         return
 
-    click.echo('Salt master started successfully!',
+    t1 = time.time()
+
+    click.echo('Salt master started successfully! ',
                color='green')
-    wait_for_minions_msg()
+    log.debug('take time: %.2f' % (t1-t0))
+    click.echo('Minions is deploying by salt-master')
+    click.echo("We'll send a message to Hipchat room tsplk when it's ready")
 
 
 @click.command()
@@ -113,64 +103,56 @@ def up(project, only_minion):
 def status(project):
     '''
     Show the status of the machines of the given project
+    :param project: name of project, if it's not provided, show status of all projects
     '''
-    project_to_show = project if len(project) > 0 else projects
+    projects_to_show = project if len(project) > 0 else projects
 
-    for project in project_to_show:
-        click.echo(tabulate.tabulate([[project],]))
+    for project in projects_to_show:
         ch_project_folder(project)
-        ps = ProjectSetting(project)
+        master_var = create_master_variables(project)
 
-        master_var = create_master_variables(project, ps)
-        minion_var = create_minion_variables(project, ps)
-        salt_master = TerraformSaltMaster(master_var, minion_var)
+        salt_master = TerraformSaltMaster(master_var)
 
-        print_info = ['host', 'minion_id', 'role', 'ip']
+        print_info = ['minion_id', 'roles', 'public_ip', 'private_ip', 'instance_type']
         print_arr = []
 
-        master_up = salt_master.is_master_up()
-        if master_up:
+        if salt_master.is_master_up():
             master = [
-                '', 'salt-master', 'salt-master', salt_master.get_public_ip()
+                '', 'salt-master', salt_master.get_public_ip(), '', ''
             ]
             print_arr.append(master)
         else:
             click.echo('master is not up yet')
+            return
 
-        minion_up = salt_master.is_minions_up()
-        if not minion_up:
+        info = salt_master.get_minions_info()
+        if not info:
             click.echo('minion is not ready yet')
+            return
 
-        if master_up or minion_up:
-            info = salt_master.get_minions_info()
-            info = [] if info is None else info
-            for instance in info:
-                row = []
-                for title in print_info:
-                    row.append(instance[title])
-                print_arr.append(row)
+        for key in info:
+            row = [key]
+            for title in print_info[1:]:
+                cell = info[key][title]
+                row.append(cell)
 
-            table = tabulate.tabulate(
-                print_arr, headers=print_info, tablefmt="fancy_grid")
-            click.echo(table)
+            print_arr.append(row)
+
+        table = tabulate.tabulate(print_arr,
+                                  headers=print_info,
+                                  tablefmt="fancy_grid")
+        click.echo(table)
 
 
 @click.command()
 @click.argument("project", nargs=1, type=click.Choice(projects))
-@click.option("--only-minion", "-m", is_flag=True,
-              help='only destroy the salt minions'
-                   'this is useful when you want to '
-                   'debug salt files')
-def destroy(project, only_minion):
+def destroy(project):
     '''
     Destroy the machines of the give project
     '''
     ch_project_folder(project)
-    ps = ProjectSetting(project)
-
-    master_var = create_master_variables(project, ps)
-    minion_var = create_minion_variables(project, ps)
-    salt_master = TerraformSaltMaster(master_var, minion_var)
+    master_var = create_master_variables(project)
+    salt_master = TerraformSaltMaster(master_var)
 
     if not salt_master.is_master_up():
         click.echo('Done.')
@@ -179,9 +161,6 @@ def destroy(project, only_minion):
     click.echo('destroying minions...')
     salt_master.destroy_minion()
 
-    if only_minion:
-        return
-
     click.echo('destroying master...')
     salt_master.destroy_master()
     click.echo('Done.')
@@ -189,16 +168,14 @@ def destroy(project, only_minion):
 
 @click.command()
 @click.argument("project", nargs=1, type=click.Choice(projects))
-@click.argument("minion", nargs=-1)
+@click.argument("minion", nargs=1)
 def browse(project, minion):
     '''
+    open splunk page by given minion name,
     '''
     ch_project_folder(project)
-    ps = ProjectSetting(project)
-
-    master_var = create_master_variables(project, ps)
-    minion_var = create_minion_variables(project, ps)
-    salt_master = TerraformSaltMaster(master_var, minion_var)
+    master_var = create_master_variables(project)
+    salt_master = TerraformSaltMaster(master_var)
 
     if len(minion) == 1:
         minion_to_be_connected = minion[0]
@@ -215,6 +192,20 @@ def browse(project, minion):
         click.echo('you could only connect to one minion at a time')
 
 
+@click.command()
+@click.argument("project", nargs=1, type=click.Choice(projects))
+def rdp(project):
+    '''
+    Return RDP password of the project
+    '''
+    ch_project_folder(project)
+    ps = ProjectSetting()
+
+    if 'rdp_password' in ps.data['terraform']:
+        msg = 'rdp password for windows machine in this project is :'
+        click.echo(msg + ps.data['terraform']['rdp_password'])
+    else:
+        click.echo('no rdp password for this project')
 
 @click.command()
 def version():
@@ -226,11 +217,6 @@ def version():
 
 
 @click.command()
-def list():
-    click.echo(projects)
-
-
-@click.command()
 @click.argument("project", nargs=1, type=click.Choice(projects))
 def delete(project):
     '''
@@ -238,11 +224,9 @@ def delete(project):
     '''
     project_path = os.path.join(project_root, project)
     ch_project_folder(project)
-    ps = ProjectSetting(project)
 
-    master_var = create_master_variables(project, ps)
-    minion_var = create_minion_variables(project, ps)
-    salt_master = TerraformSaltMaster(master_var, minion_var)
+    master_var = create_master_variables(project)
+    salt_master = TerraformSaltMaster(master_var)
     salt_master.destroy()
 
     shutil.rmtree(project_path)
@@ -254,55 +238,42 @@ def delete(project):
 @click.argument("minion", nargs=-1)
 def ssh(project, minion):
     ch_project_folder(project)
-    ps = ProjectSetting(project)
 
-    master_var = create_master_variables(project, ps)
-    minion_var = create_minion_variables(project, ps)
-    salt_master = TerraformSaltMaster(master_var, minion_var)
+    master_var = create_master_variables(project)
+    salt_master = TerraformSaltMaster(master_var)
+    ssh_key = os.path.join(project_root, project, 'id_rsa')
 
     if len(minion) == 0:
-        subprocess.call(['ssh', '-i', GlobalSetting.get_value('key_path'),
+        subprocess.call(['ssh', '-i', ssh_key,
                          '-o', 'StrictHostKeyChecking=no',
                          'ubuntu@%s' % salt_master.get_public_ip()])
     elif len(minion) == 1:
         minion_to_be_connected = minion[0]
         info = salt_master.get_minions_info()
-        for i in info:
-
-            if i['minion_id'] == minion_to_be_connected:
-                subprocess.call(
-                    ['ssh', '-i', GlobalSetting.get_value('key_path'),
-                     '-o', 'StrictHostKeyChecking=no',
-                     'ubuntu@%s' % i['ip']])
-                return
-        click.echo('minion not exist')
+        try:
+            subprocess.call(
+                ['ssh', '-i', ssh_key,
+                 '-o', 'StrictHostKeyChecking=no',
+                 'ubuntu@%s' % info[minion_to_be_connected]['public_ip']])
+        except KeyError:
+            click.echo('minion not exist')
     else:
         click.echo('you could only connect to one minion at a time')
 
 
-def create_master_variables(project, ps):
+def create_master_variables(project):
     variables = dict()
     variables.update(GlobalSetting.read_data())
-    variables.update(ps.read_data())
     variables.update({'project_name': project})
-    variables.pop('roles_count')
     return variables
 
 
-def create_minion_variables(project, ps):
-    variables = dict()
-    variables.update(GlobalSetting.read_data())
-    variables.update(ps.read_data())
-    variables.update({'project_name': project})
+def saltyhelper():
+    raise NotImplementedError
 
-    variables['key_path'] = variables['key_name']
-    variables['ubuntu_saltmaster_count'] = 0
-    variables['salt_master_ip'] = None
-    variables.update({'project_name': project})
-    variables.pop('roles_count')
-    variables.pop('splunk_architecture')
-
-    return variables
+# todo
+def check_terraform_version():
+    raise NotImplementedError
 
 
 main.add_command(up)
@@ -311,7 +282,7 @@ main.add_command(new)
 main.add_command(status)
 main.add_command(destroy)
 main.add_command(version)
-main.add_command(list)
 main.add_command(delete)
 main.add_command(ssh)
 main.add_command(config)
+main.add_command(rdp)
