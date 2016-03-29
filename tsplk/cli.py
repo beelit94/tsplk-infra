@@ -151,10 +151,7 @@ def destroy(project):
     Destroy the machines of the give project
     '''
     ch_project_folder(project)
-    # ps = ProjectSetting(project)
-
     master_var = create_master_variables(project)
-    # minion_var = create_minion_variables(project, ps)
     salt_master = TerraformSaltMaster(master_var)
 
     if not salt_master.is_master_up():
@@ -171,14 +168,13 @@ def destroy(project):
 
 @click.command()
 @click.argument("project", nargs=1, type=click.Choice(projects))
-@click.argument("minion", nargs=-1)
+@click.argument("minion", nargs=1)
 def browse(project, minion):
     '''
+    open splunk page by given minion name,
     '''
     ch_project_folder(project)
-
     master_var = create_master_variables(project)
-    #
     salt_master = TerraformSaltMaster(master_var)
 
     if len(minion) == 1:
@@ -200,7 +196,7 @@ def browse(project, minion):
 @click.argument("project", nargs=1, type=click.Choice(projects))
 def rdp(project):
     '''
-    Return RDP password of project
+    Return RDP password of the project
     '''
     ch_project_folder(project)
     ps = ProjectSetting()
@@ -242,10 +238,8 @@ def delete(project):
 @click.argument("minion", nargs=-1)
 def ssh(project, minion):
     ch_project_folder(project)
-    # ps = ProjectSetting(project)
 
     master_var = create_master_variables(project)
-    # minion_var = create_minion_variables(project, ps)
     salt_master = TerraformSaltMaster(master_var)
     ssh_key = os.path.join(project_root, project, 'id_rsa')
 
@@ -270,7 +264,6 @@ def ssh(project, minion):
 def create_master_variables(project):
     variables = dict()
     variables.update(GlobalSetting.read_data())
-    # variables.update(ps.read_data())
     variables.update({'project_name': project})
     return variables
 
