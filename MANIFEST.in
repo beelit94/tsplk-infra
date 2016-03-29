@@ -1,3 +1,4 @@
 recursive-include tsplk/terraform *
 recursive-include tsplk/salt *
 include tsplk/VERSION
+include tsplk/dependency.yml
