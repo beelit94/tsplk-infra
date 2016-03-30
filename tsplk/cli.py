@@ -23,7 +23,6 @@ class ClickStream(object):
 
 
 ch = logging.StreamHandler(ClickStream())
-# ch.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 ch.setFormatter(formatter)
 log.addHandler(ch)
@@ -171,25 +170,20 @@ def destroy(project):
 @click.argument("minion", nargs=1)
 def browse(project, minion):
     '''
-    open splunk page by given minion name,
+    open splunk page by given project and minion name
     '''
     ch_project_folder(project)
     master_var = create_master_variables(project)
     salt_master = TerraformSaltMaster(master_var)
 
-    if len(minion) == 1:
-        minion_to_be_connected = minion[0]
-        info = salt_master.get_minions_info()
-        for i in info:
-
-            if i['minion_id'] == minion_to_be_connected:
-                subprocess.call(["open", "http://%s:8000" % i['ip']])
-                return
-        click.echo('minion not exist')
-    elif len(minion) == 0:
-        click.echo('give at least one minion')
-    else:
-        click.echo('you could only connect to one minion at a time')
+    info = salt_master.get_minions_info()
+    for i in info:
+        if i == minion:
+            subprocess.call(
+                ["open", "http://%s:8000" % info[minion]['public_ip']]
+            )
+            return
+    click.echo('minion not exist')
 
 
 @click.command()
@@ -209,6 +203,9 @@ def rdp(project):
 
 @click.command()
 def version():
+    '''
+    Show current tsplk version
+    '''
     p = os.path.join(os.path.dirname(
         os.path.abspath(__file__)), 'VERSION')
     with open(p) as f:
@@ -237,8 +234,12 @@ def delete(project):
 @click.argument("project", nargs=1, type=click.Choice(projects))
 @click.argument("minion", nargs=-1)
 def ssh(project, minion):
+    '''
+    ssh to salt-master or a minion
+    :param project: name of the project
+    :param minion: name of linux minion, if minion name is not specified, ssh to salt-master
+    '''
     ch_project_folder(project)
-
     master_var = create_master_variables(project)
     salt_master = TerraformSaltMaster(master_var)
     ssh_key = os.path.join(project_root, project, 'id_rsa')
@@ -266,14 +267,6 @@ def create_master_variables(project):
     variables.update(GlobalSetting.read_data())
     variables.update({'project_name': project})
     return variables
-
-
-def saltyhelper():
-    raise NotImplementedError
-
-# todo
-def check_terraform_version():
-    raise NotImplementedError
 
 
 main.add_command(up)

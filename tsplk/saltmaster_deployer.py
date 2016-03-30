@@ -220,3 +220,13 @@ class TerraformSaltMaster:
     def _get_private_ip(self):
         private_ip = self.tf.get_output_value('salt-master-private-ip')
         return private_ip
+
+    def ssh_command(self, cmd):
+        ssh = self._ssh_connect()
+        stdin, stdout, stderr = ssh.exec_command(cmd)
+        out = stdout.read()
+        err = stderr.read()
+        ret_code = stdout.channel.recv_exit_status()
+        ssh.close()
+
+        return out, err, ret_code
