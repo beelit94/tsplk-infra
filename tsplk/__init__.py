@@ -318,7 +318,7 @@ class SearchHead(State):
             return SearchHeadCluster(self.data)
         else:
             self.data.update({'is_search_head_cluster_enabled': False})
-            return UniversalForwarder(self.data)
+            return Deployment(self.data)
 
 
 class SearchHeadCluster(State):
@@ -348,37 +348,43 @@ class SearchHeadCluster(State):
         })
 
     def get_next_state(self):
-        return UniversalForwarder(self.data)
-
-
-class UniversalForwarder(State):
-    def run(self):
-        # ask ubuntu and windows only
-        prompt = click.style("How many universal forwarders do you want?",
-                             fg='yellow')
-        uf_count = click.prompt(prompt, type=int, default=0)
-        self.data['roles_count'].extend(
-            [['universal-forwarder'] for _ in range(uf_count)])
-
-        self.data.update({'universal_forwarder_count': uf_count})
-
-        if uf_count == 0:
-            return
-        prompt = click.style("Please provide the url of uf pkg",
-                             fg='yellow')
-        uf_version = click.prompt(prompt, type=str)
-
-        self.data.update({'universal_forwarder_version': uf_version})
-
-
-    def get_next_state(self):
         cluster_enabled = self.data['is_indexer_cluster_enabled'] and self.data[
             'is_search_head_cluster_enabled']
 
-        if cluster_enabled and self.data['universal_forwarder_count'] == 0:
+        if cluster_enabled:
             return LicenseMaster(self.data)
         else:
             return Deployment(self.data)
+
+
+# class UniversalForwarder(State):
+#     def run(self):
+#         # ask ubuntu and windows only
+#         prompt = click.style("How many universal forwarders do you want?",
+#                              fg='yellow')
+#         uf_count = click.prompt(prompt, type=int, default=0)
+#         self.data['roles_count'].extend(
+#             [['universal-forwarder'] for _ in range(uf_count)])
+#
+#         self.data.update({'universal_forwarder_count': uf_count})
+#
+#         if uf_count == 0:
+#             return
+#         prompt = click.style("Please provide the url of uf pkg",
+#                              fg='yellow')
+#         uf_version = click.prompt(prompt, type=str)
+#
+#         self.data.update({'universal_forwarder_version': uf_version})
+#
+#
+#     def get_next_state(self):
+#         cluster_enabled = self.data['is_indexer_cluster_enabled'] and self.data[
+#             'is_search_head_cluster_enabled']
+#
+#         if cluster_enabled and self.data['universal_forwarder_count'] == 0:
+#             return LicenseMaster(self.data)
+#         else:
+#             return Deployment(self.data)
 
 
 class Deployment(State):
