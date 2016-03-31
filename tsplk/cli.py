@@ -262,6 +262,14 @@ def ssh(project, minion):
         click.echo('you could only connect to one minion at a time')
 
 
+@click.command()
+def show():
+    '''
+    show created project list
+    '''
+    click.echo(projects)
+
+
 def create_master_variables(project):
     variables = dict()
     variables.update(GlobalSetting.read_data())
@@ -279,3 +287,4 @@ main.add_command(delete)
 main.add_command(ssh)
 main.add_command(config)
 main.add_command(rdp)
+main.add_command(show)
