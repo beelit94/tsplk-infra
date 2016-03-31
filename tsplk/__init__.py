@@ -518,8 +518,8 @@ class OutputSettings(State):
         instance_count = self.data['instance_count'] if (len(self.data['roles_count']) == 0) else len(self.data['roles_count'])
         os_count_obj = {self.data['operating_system'] + '_count': instance_count}
 
-        non_alpha = '!@'
-        rdp_password = random.choice(non_alpha) + random.choice(string.ascii_lowercase) + ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(13))
+        rdp_password = 'win@' + ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(13))
+        rdp_password = str(rdp_password)
 
         terraform_obj['terraform'] = os_count_obj
         terraform_obj['terraform'].update({'rdp_password': rdp_password})
