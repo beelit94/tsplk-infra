@@ -318,7 +318,7 @@ class SearchHead(State):
             return SearchHeadCluster(self.data)
         else:
             self.data.update({'is_search_head_cluster_enabled': False})
-            return UniversalForwarder(self.data)
+            return Deployment(self.data)
 
 
 class SearchHeadCluster(State):
@@ -348,28 +348,43 @@ class SearchHeadCluster(State):
         })
 
     def get_next_state(self):
-        return UniversalForwarder(self.data)
-
-
-class UniversalForwarder(State):
-    def run(self):
-        # ask ubuntu and windows only
-        prompt = click.style("How many universal forwarders do you want?",
-                             fg='yellow')
-        uf_count = click.prompt(prompt, type=int, default=0)
-        self.data['roles_count'].extend(
-            [['universal-forwarder'] for x in range(uf_count)])
-
-        self.data.update({'universal_forwarder_count': uf_count})
-
-    def get_next_state(self):
         cluster_enabled = self.data['is_indexer_cluster_enabled'] and self.data[
             'is_search_head_cluster_enabled']
 
-        if cluster_enabled and self.data['universal_forwarder_count'] == 0:
+        if cluster_enabled:
             return LicenseMaster(self.data)
         else:
             return Deployment(self.data)
+
+
+# class UniversalForwarder(State):
+#     def run(self):
+#         # ask ubuntu and windows only
+#         prompt = click.style("How many universal forwarders do you want?",
+#                              fg='yellow')
+#         uf_count = click.prompt(prompt, type=int, default=0)
+#         self.data['roles_count'].extend(
+#             [['universal-forwarder'] for _ in range(uf_count)])
+#
+#         self.data.update({'universal_forwarder_count': uf_count})
+#
+#         if uf_count == 0:
+#             return
+#         prompt = click.style("Please provide the url of uf pkg",
+#                              fg='yellow')
+#         uf_version = click.prompt(prompt, type=str)
+#
+#         self.data.update({'universal_forwarder_version': uf_version})
+#
+#
+#     def get_next_state(self):
+#         cluster_enabled = self.data['is_indexer_cluster_enabled'] and self.data[
+#             'is_search_head_cluster_enabled']
+#
+#         if cluster_enabled and self.data['universal_forwarder_count'] == 0:
+#             return LicenseMaster(self.data)
+#         else:
+#             return Deployment(self.data)
 
 
 class Deployment(State):
@@ -458,6 +473,7 @@ class OutputSettings(State):
 
 
     def run(self):
+        # todo this function is terribally structure and need to be refined
         log.debug(self.data)
 
         project_name_ = self.data['project_name']
@@ -473,9 +489,17 @@ class OutputSettings(State):
         splunk_sls.update({'version': self.data['version']})
         if 'indexer_cluster' in self.data:
             splunk_sls.update({'indexer_cluster': self.data['indexer_cluster']})
+            splunk_sls['indexer_cluster']['pass4SymmKey'] = 'changethis'
+            splunk_sls['indexer_cluster']['replication_port'] = '8888'
 
         if 'search_head_cluster' in self.data:
             splunk_sls.update({'search_head_cluster': self.data['search_head_cluster']})
+            splunk_sls['search_head_cluster']['pass4SymmKey'] = 'changethis'
+            splunk_sls['search_head_cluster']['replication_port'] = '8889'
+            splunk_sls['search_head_cluster']['shcluster_label'] = 'tsplk_shc'
+
+        if 'universal_forwarder_version' in self.data:
+            splunk_sls.update({'universal-forwarder': {'version': self.data['universal_forwarder_version']}})
 
         # copy license file
         if 'license_path' in self.data:
@@ -500,8 +524,8 @@ class OutputSettings(State):
         instance_count = self.data['instance_count'] if (len(self.data['roles_count']) == 0) else len(self.data['roles_count'])
         os_count_obj = {self.data['operating_system'] + '_count': instance_count}
 
-        non_alpha = '!@'
-        rdp_password = random.choice(non_alpha) + random.choice(string.ascii_lowercase) + ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(13))
+        rdp_password = 'win@' + ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(13))
+        rdp_password = str(rdp_password)
 
         terraform_obj['terraform'] = os_count_obj
         terraform_obj['terraform'].update({'rdp_password': rdp_password})
@@ -529,7 +553,7 @@ class OutputSettings(State):
         salt_master_obj = {
             'salt_master': {
                 'instance_count': instance_count,
-                'timeout': 3600,
+                'timeout': 3600, #todo remove hard code
                 'ubuntu-salt-master-version': dependency_info['ubuntu-salt-master-version'],
                 'salty-splunk-version': dependency_info['salty-splunk-version']
             }
