@@ -358,9 +358,18 @@ class UniversalForwarder(State):
                              fg='yellow')
         uf_count = click.prompt(prompt, type=int, default=0)
         self.data['roles_count'].extend(
-            [['universal-forwarder'] for x in range(uf_count)])
+            [['universal-forwarder'] for _ in range(uf_count)])
 
         self.data.update({'universal_forwarder_count': uf_count})
+
+        if uf_count == 0:
+            return
+        prompt = click.style("Please provide the url of uf pkg",
+                             fg='yellow')
+        uf_version = click.prompt(prompt, type=str)
+
+        self.data.update({'universal_forwarder_version': uf_version})
+
 
     def get_next_state(self):
         cluster_enabled = self.data['is_indexer_cluster_enabled'] and self.data[
@@ -458,6 +467,7 @@ class OutputSettings(State):
 
 
     def run(self):
+        # todo this function is terribally structure and need to be refined
         log.debug(self.data)
 
         project_name_ = self.data['project_name']
@@ -473,9 +483,17 @@ class OutputSettings(State):
         splunk_sls.update({'version': self.data['version']})
         if 'indexer_cluster' in self.data:
             splunk_sls.update({'indexer_cluster': self.data['indexer_cluster']})
+            splunk_sls['indexer_cluster']['pass4SymmKey'] = 'changethis'
+            splunk_sls['indexer_cluster']['replication_port'] = '8888'
 
         if 'search_head_cluster' in self.data:
             splunk_sls.update({'search_head_cluster': self.data['search_head_cluster']})
+            splunk_sls['search_head_cluster']['pass4SymmKey'] = 'changethis'
+            splunk_sls['search_head_cluster']['replication_port'] = '8889'
+            splunk_sls['search_head_cluster']['shcluster_label'] = 'tsplk_shc'
+
+        if 'universal_forwarder_version' in self.data:
+            splunk_sls.update({'universal-forwarder': {'version': self.data['universal_forwarder_version']}})
 
         # copy license file
         if 'license_path' in self.data:
@@ -529,7 +547,7 @@ class OutputSettings(State):
         salt_master_obj = {
             'salt_master': {
                 'instance_count': instance_count,
-                'timeout': 3600,
+                'timeout': 3600, #todo remove hard code
                 'ubuntu-salt-master-version': dependency_info['ubuntu-salt-master-version'],
                 'salty-splunk-version': dependency_info['salty-splunk-version']
             }
