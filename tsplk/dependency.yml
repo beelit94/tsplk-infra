@@ -1,4 +1,4 @@
-salty-splunk-version: "0.3"
+salty-splunk-version: "develop"
 windows-2008-r2-version: latest
 windows-2012-r2-version: latest
 ubuntu-1404-version: latest
