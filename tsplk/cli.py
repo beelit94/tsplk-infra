@@ -270,6 +270,17 @@ def show():
     click.echo(projects)
 
 
+@click.command()
+def saltdoc():
+    '''
+    salt doc
+    '''
+    doc_path = os.path.dirname(os.path.abspath(__file__))
+    doc_path = os.path.join(doc_path, 'salt', 'docs', 'build', 'html', 'splunk.html')
+    cmd = 'open %s' % doc_path
+    subprocess.call(cmd, shell=True)
+
+
 def create_master_variables(project):
     variables = dict()
     variables.update(GlobalSetting.read_data())
@@ -288,3 +299,4 @@ main.add_command(ssh)
 main.add_command(config)
 main.add_command(rdp)
 main.add_command(show)
+main.add_command(saltdoc)

@@ -22,4 +22,5 @@
 # no splunk with 1 linux
 1. new 1 linux
 
-# 
+# no splunk with 1 windows
+1. new and up 1 windows
