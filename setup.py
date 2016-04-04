@@ -44,7 +44,9 @@ def gen_data_files():
     os.chdir(current_dir)
 
     # add version file
+    # todo, put static file to a folder
     results += ['VERSION']
+    results += ['dependency.yml']
     return results
 
 
