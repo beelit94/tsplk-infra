@@ -1,6 +1,6 @@
-salty-splunk-version: "develop"
-windows-2008-r2-version: latest
-windows-2012-r2-version: latest
-ubuntu-1404-version: latest
-ubuntu-salt-master-version: latest
+salty-splunk-version: "0.4"
+windows-2008-r2-version: 14
+windows-2012-r2-version: 16
+ubuntu-1404-version: 11
+ubuntu-salt-master-version: 16
 terraform-version: 0.6.13
