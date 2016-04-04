@@ -107,6 +107,8 @@ def status(project):
     projects_to_show = project if len(project) > 0 else projects
 
     for project in projects_to_show:
+        msg = click.style('Project: %s' % project, fg='green')
+        click.echo(msg)
         ch_project_folder(project)
         master_var = create_master_variables(project)
 
@@ -132,7 +134,10 @@ def status(project):
         for key in info:
             row = [key]
             for title in print_info[1:]:
-                cell = info[key][title]
+                if title in info[key]:
+                    cell = info[key][title]
+                else:
+                    cell = ''
                 row.append(cell)
 
             print_arr.append(row)
