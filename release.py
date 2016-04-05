@@ -56,6 +56,8 @@ def release_major(version_tuple):
 @click.option('--release', '-r', type=click.Choice(['major', 'minor', 'patch']), default='patch')
 @click.option('--url', prompt=True, default=lambda: os.environ.get('FURY_URL', ''))
 def main(release, url):
+    generate_salty_splunk_doc_files()
+
     version_tuple = StrictVersion(get_version()).version
     click.echo('old version: %s' % str(version_tuple))
 
@@ -98,6 +100,14 @@ def main(release, url):
         subprocess.call('curl -F package=@%s %s' % (pkg_file_name, url),
                         shell=True)
         os.remove(pkg_file_name)
+
+
+def generate_salty_splunk_doc_files():
+    # todo, avoiding make build machine depend on sphinx
+    cwd = os.getcwd()
+    os.chdir('tsplk/salt/docs')
+    subprocess.call("make html", shell=True)
+    os.chdir(cwd)
 
 
 if __name__ == '__main__':

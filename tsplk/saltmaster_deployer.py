@@ -1,4 +1,4 @@
-from terraform import Terraform
+from python_terraform import Terraform
 import paramiko
 from scp import SCPClient, SCPException
 import os
@@ -7,23 +7,32 @@ import logging
 import json
 
 minion_info_remote_path = 'minion_info'
-minion_info_local_path = 'remote_state'
+minion_info_local_path = 'minion_info'
 
 log = logging.getLogger()
 
 
 class TerraformSaltMaster:
-    def __init__(self, master_variables, minion_variables):
-
-        self.minion_variables = minion_variables
+    def __init__(self, master_variables):
         self.master_variables = master_variables
-        self.master_variables['ubuntu_saltmaster_count'] = 1
+        p_file = 'settings.yml'
+        with open(p_file) as f:
+            project_data = yaml.load(f)
+
+        num = int(project_data['salt_master']['instance_count'])
+
+        # r3.large
+        if num > 80:
+            self.master_variables['master_instance_type'] = 'r3.xlarge'
+
+        self.master_variables.update({'ubuntu-salt-master-version': project_data['salt_master']['ubuntu-salt-master-version']})
 
         self.tf = Terraform(
             targets=['aws_instance.ubuntu-salt-master'],
             state='salt_master_state',
             variables=self.master_variables
         )
+        self.tf.read_state_file()
 
     def is_master_up(self):
         """
@@ -31,7 +40,22 @@ class TerraformSaltMaster:
         re-calling it if you know your status is still the same
         :return:
         """
-        return self.tf.is_any_aws_instance_alive()
+        if not os.path.exists(self.tf.state_filename):
+            return False
+
+        # todo refresh takes too long, how to check is master up quicker?
+        #return self.tf.is_any_aws_instance_alive()
+        try:
+            ip = self.tf.get_output_value('salt-master-public-ip')
+            if not ip:
+                return False
+        except Exception as err:
+            log.error(err)
+            return False
+
+        log.debug('master is up')
+        return True
+
 
     def is_minions_up(self):
         if not self.is_master_up():
@@ -43,7 +67,7 @@ class TerraformSaltMaster:
 
         ssh = self._ssh_connect()
 
-        cmd = 'cat terraform.tfstate'
+        cmd = 'cat minion_state'
         stdin, stdout, stderr = \
             ssh.exec_command(cmd)
 
@@ -84,6 +108,7 @@ class TerraformSaltMaster:
         if self.is_master_up():
             log.debug('master is already up')
             return
+
         ret_code, out, err = self.tf.apply()
         if ret_code != 0:
             raise EnvironmentError(out + err)
@@ -92,18 +117,9 @@ class TerraformSaltMaster:
         if not self.is_master_up():
             return
 
-        self.minion_variables['salt_master_ip'] = self._get_private_ip()
-
-        vars_string = ''
-        for key, value in self.minion_variables.items():
-            vars_string += '--tfvar' + ' %s=%s ' % (key, value)
-
-        vars_string += ' --hipchat_token=%s' % \
-                       self.minion_variables['hipchat_token']
-
         # use tf var to pass variable value
-        cmd_str = 'nohup sudo python saltminion_deployer.py up %s > ' \
-                  'tsplk.log 2>&1 &' % vars_string
+        cmd_str = 'nohup sudo python saltminion_deployer.py up > ' \
+                  'tsplk.log 2>&1 &'
 
         ssh = self._ssh_connect()
         stdin, stdout, stderr = ssh.exec_command(cmd_str)
@@ -117,16 +133,6 @@ class TerraformSaltMaster:
             raise EnvironmentError(out + err)
 
     def up(self):
-        is_minion_up = self.is_minions_up()
-        is_master_up = self.is_master_up()
-
-        if is_minion_up:
-            return
-
-        if is_master_up and not is_minion_up:
-            self.up_minion()
-            return
-
         self.up_master()
         self.up_minion()
 
@@ -144,7 +150,8 @@ class TerraformSaltMaster:
     def _ssh_connect(self):
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        k = paramiko.RSAKey.from_private_key_file(self.master_variables['key_path'])
+        # todo hard code here
+        k = paramiko.RSAKey.from_private_key_file('id_rsa')
         # todo user name should same as saltmaster username
         # here we hard code first
         ssh.connect(self.get_public_ip(), username='ubuntu', pkey=k)
@@ -154,15 +161,9 @@ class TerraformSaltMaster:
         if not self.is_master_up():
             return
 
-        if not self.is_minions_up():
-            return
-
         ssh = self._ssh_connect()
 
-        vars_string = ''
-        for key, value in self.minion_variables.items():
-            vars_string += '--tfvar' + ' %s=%s ' % (key, value)
-        cmd = 'sudo python saltminion_deployer.py destroy %s' % vars_string
+        cmd = 'sudo python saltminion_deployer.py destroy'
         stdin, stdout, stderr = ssh.exec_command(cmd)
         out = stdout.read()
         err = stderr.read()
@@ -174,7 +175,7 @@ class TerraformSaltMaster:
         ssh.close()
 
         if ret_code != 0:
-            log.debug('err: ' + err)
+            log.error('err: ' + err)
             raise EnvironmentError(err)
 
         if os.path.exists(minion_info_local_path):
@@ -185,22 +186,21 @@ class TerraformSaltMaster:
 
         :return: in dict
         """
-        if not self.is_minions_up():
-            return None
 
         if os.path.exists(minion_info_local_path):
+            log.debug(minion_info_local_path + ' founded.')
             with open(minion_info_local_path) as f:
                 instances = yaml.load(f)
             return instances
 
+        log.debug(minion_info_local_path + 'not found, scp it.')
         ssh = self._ssh_connect()
         try:
             with SCPClient(ssh.get_transport()) as scp:
                 scp.get(remote_path=minion_info_remote_path,
                         local_path=minion_info_local_path)
         except SCPException:
-            # todo logging
-            print('minions are not ready yet')
+            log.error('minions are not ready yet')
             return None
         finally:
             ssh.close()
@@ -214,8 +214,19 @@ class TerraformSaltMaster:
         if not self.is_master_up():
             return None
         public_ip = self.tf.get_output_value('salt-master-public-ip')
+        log.debug('public ip is: %s' % public_ip)
         return public_ip
 
     def _get_private_ip(self):
         private_ip = self.tf.get_output_value('salt-master-private-ip')
         return private_ip
+
+    def ssh_command(self, cmd):
+        ssh = self._ssh_connect()
+        stdin, stdout, stderr = ssh.exec_command(cmd)
+        out = stdout.read()
+        err = stderr.read()
+        ret_code = stdout.channel.recv_exit_status()
+        ssh.close()
+
+        return out, err, ret_code

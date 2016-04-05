@@ -4,7 +4,18 @@ My Tool does one thing, and one thing well.
 from distutils.core import setup
 import os
 
-dependencies = ['click', 'pyyaml', 'python-vagrant', 'keyring', 'paramiko', 'scp', 'tabulate']
+dependencies = [
+    'click',
+    'pyyaml',
+    'python-vagrant',
+    'keyring',
+    'paramiko',
+    'scp',
+    'tabulate',
+    'python-terraform',
+    'requests',
+    'Crypto'
+]
 module_name = 'tsplk'
 
 
@@ -33,7 +44,9 @@ def gen_data_files():
     os.chdir(current_dir)
 
     # add version file
+    # todo, put static file to a folder
     results += ['VERSION']
+    results += ['dependency.yml']
     return results
 
 
