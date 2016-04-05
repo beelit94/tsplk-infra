@@ -124,12 +124,12 @@ def status(project):
             print_arr.append(master)
         else:
             click.echo('master is not up yet')
-            return
+            continue
 
         info = salt_master.get_minions_info()
         if not info:
             click.echo('minion is not ready yet')
-            return
+            continue
 
         for key in info:
             row = [key]
