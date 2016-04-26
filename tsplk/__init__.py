@@ -539,6 +539,7 @@ class OutputSettings(State):
             splunk_sls.update({'indexer_cluster': self.data['indexer_cluster']})
             splunk_sls['indexer_cluster']['pass4SymmKey'] = 'changethis'
             splunk_sls['indexer_cluster']['replication_port'] = '8888'
+            splunk_sls['indexer_cluster']['cluster_label'] = 'tsplk_idc'
 
         if 'search_head_cluster' in self.data:
             splunk_sls.update(
