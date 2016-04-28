@@ -10,11 +10,13 @@ import logging
 import tabulate
 
 log = logging.getLogger()
+if not os.path.isdir(project_root):
+    os.mkdir(project_root)
+
 projects = [name for name in os.listdir(project_root)
             if os.path.isdir(os.path.join(project_root, name))]
 
-if not os.path.isdir(project_root):
-    os.mkdir(project_root)
+
 
 
 class ClickStream(object):
