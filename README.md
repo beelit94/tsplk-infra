@@ -14,9 +14,14 @@ Right now we only test on MAC.
 ### Prerequsition
 1. _pipsi_ (optional)
 
-    > [pipsi](https://github.com/mitsuhiko/pipsi) is a wrapper around virtualenv and pip which installs scripts provided by python packages into separate virtualenvs to shield them from your system and each other. 
-    > This is a nice to have for user who use python command heavily. 
-    > However, there are several user report that they can't install it successfully. 
+    > [pipsi](https://github.com/mitsuhiko/pipsi) is a wrapper around virtualenv and pip
+    >
+    > which installs scripts provided by python packages into separate virtualenvs to shield them from your system and each other.
+    >
+    > This is a nice to have for user who has multiple python command line tools installed to avoid conflict between requirements.
+    >
+    > However, there are several user report that they can't install it successfully.
+    >
     > If you can't install it, you could just skip it.
 
         curl https://raw.githubusercontent.com/mitsuhiko/pipsi/master/get-pipsi.py | python
@@ -50,9 +55,12 @@ If you don't have pipsi installed,
 
 ### Running tsplk at the very first time
 
-1. ask for AWS access key, secret key and atlas token from [admin](ftan@splunk.com)
-1. Go [here](https://hipchat.splunk.com/account/api) to get your HipChat `sendmessage` token
-1. run `tsplk config` and input the information
+1. Ask for AWS access key and secret key from [admin](emailto:ftan@splunk.com)
+1. Go [here](https://hipchat.splunk.com/account/api) to get your HipChat token
+with `view group` scope, token label could be anything
+1. Enter `tsplk` room in the hipchat, and adjust your room notification to `quiet`
+![](https://s3-us-west-2.amazonaws.com/tsplk/StaticResources/hipchat_room_notification.png)
+1. Run `tsplk config` and input the information
 
 # Upgrade
 
