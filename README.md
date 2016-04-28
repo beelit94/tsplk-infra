@@ -9,7 +9,7 @@ The purpose of this tool is that for QA/DEV could get a testable Splunk ASAP.
 
 ### Supported platform of cmd tool
 
-Right now we only test on MAC.
+Right now we only tested on MAC.
 
 ### Prerequsition
 1. _pipsi_ (optional)
@@ -18,11 +18,11 @@ Right now we only test on MAC.
     >
     > which installs scripts provided by python packages into separate virtualenvs to shield them from your system and each other.
     >
-    > This is a nice to have for user who has multiple python command line tools installed to avoid conflict between requirements.
+    > This is a nice to have for user who has multiple python command line tools installed and you need to avoid conflict between requirements.
     >
-    > However, there are several user report that they can't install it successfully.
+    > However, several users reported that they couldn't install pipsi successfully.
     >
-    > If you can't install it, you could just skip it.
+    > If you can't install it, just skip it.
 
         curl https://raw.githubusercontent.com/mitsuhiko/pipsi/master/get-pipsi.py | python
 
@@ -64,13 +64,23 @@ with `view group` scope, token label could be anything
 
 # Upgrade
 
-If you have pipsi installed,
+If you install tsplk through pipsi,
 
     pipsi upgrade tsplk
      
-If you don't have pipsi installed,
+If you install tsplk through pip,
 
     sudo pip install --upgrade tsplk 
+    
+# Uninstall
+
+If you install tsplk through pipsi,
+
+    pipsi uninstall tsplk
+     
+If you install tsplk through pip,
+
+    sudo pip uninstall tsplk
 
 # Usage
 ### How to create a Splunk environment
@@ -81,19 +91,19 @@ If you don't have pipsi installed,
         tsplk up <project_name>
 
 ### Check the status of the VM you defined
-run following command under project's folder
+run the following command
 
     tsplk status <project_name>
 
-to view all the machine you created
+to view the public-ip, private-ip and name of all the machines you created
 
 ### How to access your VM
 
-to access master
+to access saltmaster
 
     tsplk ssh <project_name>
 
-access the Splunk instance
+to access the Splunk instance
 
     tsplk ssh <project_name> <minion_id>
 
@@ -112,12 +122,24 @@ to delete your project from project list, use
 
 1. do `tsplk new`
 2. You will be asked to enter a project name. Please type what ever you want. Say, clustering here.
-3. You will be asked to enter the splunk version. say 6.3.2 here
+3. You will be asked to enter the splunk version.
+
+    > Please type in URL of package here
+
 4. Choose the platform you want to test
 5. Enter 0 for indexer cluster
 6. Enter number of slaves, search heads you want
 7. Enter the replication factor and search factor you want
 8. do `tsplk up clustering`, tsplk will bring your instances up
+
+# TroubleShooting
+### keyring.backends._OS_X_API.Error
+
+If you see this error `keyring.backends._OS_X_API.Error: (-25293, "Can't fetch password from system")`
+
+We're not sure what's the root cause of this
+
+Please try to reinstall tsplk with `pip` instead of `pipsi`
 
 # How to get involved
 ### Report bug
