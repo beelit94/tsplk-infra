@@ -116,6 +116,10 @@ to destroy all the VM you created, run
 to delete your project from project list, use
 
     tsplk delete <project_name>
+    
+### to see all the commands which tsplk provides, run
+
+    tsplk --help
 
 # TroubleShooting
 ### keyring.backends._OS_X_API.Error
