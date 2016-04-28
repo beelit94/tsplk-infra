@@ -117,21 +117,6 @@ to delete your project from project list, use
 
     tsplk delete <project_name>
 
-# Examples
-### Indexer clustering
-
-1. do `tsplk new`
-2. You will be asked to enter a project name. Please type what ever you want. Say, clustering here.
-3. You will be asked to enter the splunk version.
-
-    > Please type in URL of package here
-
-4. Choose the platform you want to test
-5. Enter 0 for indexer cluster
-6. Enter number of slaves, search heads you want
-7. Enter the replication factor and search factor you want
-8. do `tsplk up clustering`, tsplk will bring your instances up
-
 # TroubleShooting
 ### keyring.backends._OS_X_API.Error
 
