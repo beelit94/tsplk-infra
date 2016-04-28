@@ -1,6 +1,6 @@
 # tsplk
 
-It is a command line tool that could let you create a Splunk environment for testing.
+It is a command line tool that could let you create a Splunk environment for testing on AWS.
 
 The purpose of this tool is that for QA/DEV could get a testable Splunk ASAP.
 
