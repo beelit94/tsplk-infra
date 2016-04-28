@@ -35,7 +35,7 @@ global_stetting_list = OrderedDict({
 
     'hipchat_token': {
         'prompt_question':
-            'Please enter the token of your Hipchat with scope "sendmessage"'
+            'Please enter the token of your Hipchat with scope "viewgroup"'
     },
 })
 
