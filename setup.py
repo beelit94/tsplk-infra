@@ -5,16 +5,16 @@ from distutils.core import setup
 import os
 
 dependencies = [
-    'click',
-    'pyyaml',
+    'click>=6.6',
+    'pyyaml>=3.11',
     'python-vagrant',
-    'keyring',
+    'keyring>=9.0',
     'paramiko',
-    'scp',
-    'tabulate',
+    'scp>=0.10.2',
+    'tabulate>=0.7.5',
     'python-terraform',
-    'requests',
-    'Crypto'
+    'requests>=2.9.1',
+    'pycrypto>=2.6.1'
 ]
 module_name = 'tsplk'
 
