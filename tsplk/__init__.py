@@ -92,7 +92,7 @@ class GlobalSetting:
     @staticmethod
     def is_employee_id_valid(username):
         # check employee id should be only [a-z]
-        if not re.match(r'^[a-z]*$', username):
+        if not re.match(r'^[a-z]{2,}$', username):
             return False
 
         # this is a hacky way and we need to make sure we have hipchat token
