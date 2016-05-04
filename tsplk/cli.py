@@ -1,13 +1,12 @@
-import click
-from . import ProjectCreation, StateMachine, GlobalSetting, ProjectSetting, \
-    ch_project_folder, project_root, global_stetting_list
+import logging
 import os
 import shutil
-from saltmaster_deployer import TerraformSaltMaster
 import subprocess
-import keyring
-import logging
+import click
 import tabulate
+from saltmaster_deployer import TerraformSaltMaster
+from . import ProjectCreation, StateMachine, GlobalSetting, ProjectSetting, \
+    ch_project_folder, project_root
 
 log = logging.getLogger()
 if not os.path.isdir(project_root):
@@ -45,11 +44,7 @@ def config():
     '''
     config global settings for tsplk
     '''
-    for key, value in global_stetting_list.items():
-        default = keyring.get_password('system', key)
-        prompt = value['prompt_question']
-        input_value = click.prompt(prompt, default=default)
-        GlobalSetting.set_value(key, input_value)
+    GlobalSetting.get_input_from_user()
 
 
 @click.command()
