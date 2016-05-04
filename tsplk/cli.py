@@ -1,13 +1,12 @@
-import click
-from . import ProjectCreation, StateMachine, GlobalSetting, ProjectSetting, \
-    ch_project_folder, project_root, global_setting_list
+import logging
 import os
 import shutil
-from saltmaster_deployer import TerraformSaltMaster
 import subprocess
-import keyring
-import logging
+import click
 import tabulate
+from saltmaster_deployer import TerraformSaltMaster
+from . import ProjectCreation, StateMachine, GlobalSetting, ProjectSetting, \
+    ch_project_folder, project_root
 
 log = logging.getLogger()
 if not os.path.isdir(project_root):
