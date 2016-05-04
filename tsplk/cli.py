@@ -45,11 +45,7 @@ def config():
     '''
     config global settings for tsplk
     '''
-    for key, value in global_stetting_list.items():
-        default = keyring.get_password('system', key)
-        prompt = value['prompt_question']
-        input_value = click.prompt(prompt, default=default)
-        GlobalSetting.set_value(key, input_value)
+    GlobalSetting.get_input_from_user()
 
 
 @click.command()

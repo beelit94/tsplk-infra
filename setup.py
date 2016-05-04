@@ -14,7 +14,8 @@ dependencies = [
     'tabulate>=0.7.5',
     'python-terraform',
     'requests>=2.9.1',
-    'pycrypto>=2.6.1'
+    'pycrypto>=2.6.1',
+    'hypchat>=0.21'
 ]
 module_name = 'tsplk'
 

@@ -10,6 +10,8 @@ import logging
 from requests.exceptions import MissingSchema
 from Crypto.PublicKey import RSA
 import random
+import re
+from hypchat import HypChat
 
 log = logging.getLogger()
 working_folder_name = ".tsplk"
@@ -18,26 +20,22 @@ setting_filename = 'settings.yml'
 ssh_private_key_name = 'id_rsa'
 sync_folder = 'sync_to_file_base'
 
-global_stetting_list = OrderedDict({
-    'aws_access_key': {
-        'prompt_question': 'Please enter AWS access key ID'
-    },
-
-    'aws_secret_key': {
-        'prompt_question': 'Please enter secret key'
-    },
-
-    'username': {
-        'prompt_question': 'Please enter your employee account'
-                           '(make sure you get it right, hipchat will use '
-                           'this account to inform you when your environment ready)'
-    },
-
-    'hipchat_token': {
-        'prompt_question':
-            'Please enter the token of your Hipchat with scope "viewgroup"'
-    },
-})
+global_stetting_list = OrderedDict()
+global_stetting_list['aws_access_key'] = {
+    'prompt_question': 'Please enter AWS access key ID',
+}
+global_stetting_list['aws_secret_key'] = {
+    'prompt_question': 'Please enter AWS secret key',
+}
+global_stetting_list['username'] = {
+    'prompt_question': 'Please enter your employee ID (ex. ftan)',
+    'error_handling': lambda s: True if re.match(r'^[a-z]*$', s) else False
+}
+global_stetting_list['hipchat_token'] = {
+    'prompt_question':
+        'Please enter the token of your Hipchat with scope "viewgroup"',
+    'error_handling': lambda t: GlobalSetting.is_hipchat_token_valid(t)
+}
 
 platform_count = [
     'ubuntu_1404_count',
@@ -80,6 +78,35 @@ class GlobalSetting:
             if keyring.get_password('system', key) is None:
                 return True
         return False
+
+    @staticmethod
+    def is_hipchat_token_valid(token):
+        try:
+            hc = HypChat(token=token, endpoint="https://hipchat.splunk.com")
+            hc.users()
+            return True
+        except Exception as err:
+            click.echo(str(err))
+            return False
+
+    @staticmethod
+    def get_input_from_user():
+        for key, action in global_stetting_list.items():
+            default = keyring.get_password('system', key)
+            prompt = action['prompt_question']
+            input_value = ""
+            while True:
+                input_value = click.prompt(prompt, default=default)
+
+                if 'error_handling' not in action:
+                    break
+
+                if action['error_handling'](input_value):
+                    break
+                else:
+                    click.echo('the value you enter is not valid')
+
+            GlobalSetting.set_value(key, input_value)
 
 
 class ProjectSetting:
@@ -132,6 +159,7 @@ class ProjectCreation(State):
     '''
     State for creating a new project
     '''
+
     def run(self):
 
         while True:
@@ -164,11 +192,7 @@ class GlobalConfiguration(State):
         click.echo('Missing global setting values, '
                    'please answer the following question')
 
-        for key, value in global_stetting_list.items():
-            default = keyring.get_password('system', key)
-            prompt = value['prompt_question']
-            input_value = click.prompt(prompt, default=default)
-            GlobalSetting.set_value(key, input_value)
+        GlobalSetting.get_input_from_user()
 
     def get_next_state(self):
         return SplunkVersion(self.data)
@@ -178,6 +202,7 @@ class SplunkVersion(State):
     '''
     State for splunk version or package url
     '''
+
     def url_exists(self, path):
         try:
             r = requests.head(path)
@@ -193,9 +218,18 @@ class SplunkVersion(State):
         # take no splunk here
         splunk_version = ""
         while True:
-            question = "Please enter package url(or empty for no splunk)"
+            question = "Please enter package url(or empty for no splunk)\n"
             prompt = click.style(question, fg='yellow')
-            splunk_version = click.prompt(prompt, default="", show_default=False)
+            prompt2 = "Since AWS can't reach release.splunk.com, " \
+                      "and we're working with IT on this.\n" \
+                      "Please use r.susqa.com to find the package you want " \
+                      "for now\n"
+
+            prompt2 = click.style(prompt2, fg='magenta')
+            prompt += prompt2
+
+            splunk_version = click.prompt(prompt, default="",
+                                          show_default=False)
             if not splunk_version:
                 break
 
@@ -307,7 +341,8 @@ class SearchHead(State):
         self.data.update({'search_head_count': search_head_count})
 
         if self.data['is_indexer_cluster_enabled']:
-            role_arrays = [['search-head', 'indexer-cluster-search-head'] for x in range(search_head_count)]
+            role_arrays = [['search-head', 'indexer-cluster-search-head'] for x
+                           in range(search_head_count)]
             self.data['roles_count'].extend(role_arrays)
         else:
             role_arrays = [['search-head'] for x in range(search_head_count)]
@@ -419,7 +454,8 @@ class LicenseMaster(State):
         return OutputSettings(self.data)
 
     def run(self):
-        prompt = click.style("Do you need a central license master?", fg='yellow')
+        prompt = click.style("Do you need a central license master?",
+                             fg='yellow')
         license_master = click.confirm(prompt, default=False)
 
         if not license_master:
@@ -471,7 +507,6 @@ class OutputSettings(State):
         # copy ssh key to be synced
         shutil.copy(private_key_path, sync_folder_path)
 
-
     def run(self):
         # todo this function is terribally structure and need to be refined
         log.debug(self.data)
@@ -493,17 +528,20 @@ class OutputSettings(State):
             splunk_sls['indexer_cluster']['replication_port'] = '8888'
 
         if 'search_head_cluster' in self.data:
-            splunk_sls.update({'search_head_cluster': self.data['search_head_cluster']})
+            splunk_sls.update(
+                {'search_head_cluster': self.data['search_head_cluster']})
             splunk_sls['search_head_cluster']['pass4SymmKey'] = 'changethis'
             splunk_sls['search_head_cluster']['replication_port'] = '8889'
             splunk_sls['search_head_cluster']['shcluster_label'] = 'tsplk_shc'
 
         if 'universal_forwarder_version' in self.data:
-            splunk_sls.update({'universal-forwarder': {'version': self.data['universal_forwarder_version']}})
+            splunk_sls.update({'universal-forwarder': {
+                'version': self.data['universal_forwarder_version']}})
 
         # copy license file
         if 'license_path' in self.data:
-            shutil.copy(self.data['license_path'], os.path.join(project_root, project_name_, sync_folder))
+            shutil.copy(self.data['license_path'],
+                        os.path.join(project_root, project_name_, sync_folder))
             self.data['license_path'] = \
                 'salt://' + os.path.basename(self.data['license_path'])
             splunk_sls.update({'license_path': self.data['license_path']})
@@ -516,32 +554,44 @@ class OutputSettings(State):
         # dump data for remote terraform
 
         dependency_info_path = os.path.abspath(__file__)
-        dependency_info_path = os.path.join(os.path.dirname(dependency_info_path), 'dependency.yml')
+        dependency_info_path = os.path.join(
+            os.path.dirname(dependency_info_path), 'dependency.yml')
         with open(dependency_info_path) as f:
             dependency_info = yaml.load(f)
 
         terraform_obj = dict()
-        instance_count = self.data['instance_count'] if (len(self.data['roles_count']) == 0) else len(self.data['roles_count'])
-        os_count_obj = {self.data['operating_system'] + '_count': instance_count}
+        instance_count = self.data['instance_count'] if (
+        len(self.data['roles_count']) == 0) else len(self.data['roles_count'])
+        os_count_obj = {
+            self.data['operating_system'] + '_count': instance_count}
 
-        rdp_password = 'win@' + ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(13))
+        rdp_password = 'win@' + ''.join(
+            random.choice(string.ascii_uppercase + string.digits) for _ in
+            range(13))
         rdp_password = str(rdp_password)
 
         terraform_obj['terraform'] = os_count_obj
         terraform_obj['terraform'].update({'rdp_password': rdp_password})
-        terraform_obj['terraform']['access_key'] = keyring.get_password('system', 'aws_access_key')
-        terraform_obj['terraform']['secret_key'] = keyring.get_password('system', 'aws_secret_key')
-        terraform_obj['terraform']['username'] = keyring.get_password('system', 'username')
+        terraform_obj['terraform']['access_key'] = keyring.get_password(
+            'system', 'aws_access_key')
+        terraform_obj['terraform']['secret_key'] = keyring.get_password(
+            'system', 'aws_secret_key')
+        terraform_obj['terraform']['username'] = keyring.get_password('system',
+                                                                      'username')
         terraform_obj['terraform']['project_name'] = project_name_
-        terraform_obj['terraform']['windows-2008-r2-version'] = dependency_info['windows-2008-r2-version']
-        terraform_obj['terraform']['windows-2012-r2-version'] = dependency_info['windows-2012-r2-version']
-        terraform_obj['terraform']['ubuntu-1404-version'] = dependency_info['ubuntu-1404-version']
+        terraform_obj['terraform']['windows-2008-r2-version'] = dependency_info[
+            'windows-2008-r2-version']
+        terraform_obj['terraform']['windows-2012-r2-version'] = dependency_info[
+            'windows-2012-r2-version']
+        terraform_obj['terraform']['ubuntu-1404-version'] = dependency_info[
+            'ubuntu-1404-version']
 
         formatted_data.update(terraform_obj)
 
         hipchat_obj = {
             'hipchat':
-                {'hipchat_token': keyring.get_password('system', 'hipchat_token'),
+                {'hipchat_token': keyring.get_password('system',
+                                                       'hipchat_token'),
                  'username': keyring.get_password('system', 'username'),
                  'project_name': project_name_
                  }
@@ -553,15 +603,17 @@ class OutputSettings(State):
         salt_master_obj = {
             'salt_master': {
                 'instance_count': instance_count,
-                'timeout': 3600, #todo remove hard code
-                'ubuntu-salt-master-version': dependency_info['ubuntu-salt-master-version'],
+                'timeout': 3600,  # todo remove hard code
+                'ubuntu-salt-master-version': dependency_info[
+                    'ubuntu-salt-master-version'],
                 'salty-splunk-version': dependency_info['salty-splunk-version']
             }
         }
 
         formatted_data.update(salt_master_obj)
 
-        setting_path = os.path.join(project_root, project_name_, setting_filename)
+        setting_path = os.path.join(project_root, project_name_,
+                                    setting_filename)
 
         with open(setting_path, "w") as f:
             yaml.safe_dump(formatted_data, f, default_flow_style=False)
