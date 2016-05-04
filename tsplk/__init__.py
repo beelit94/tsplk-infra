@@ -20,19 +20,19 @@ setting_filename = 'settings.yml'
 ssh_private_key_name = 'id_rsa'
 sync_folder = 'sync_to_file_base'
 
-global_stetting_list = OrderedDict()
-global_stetting_list['aws_access_key'] = {
+global_setting_list = OrderedDict()
+global_setting_list['aws_access_key'] = {
     'prompt_question': 'Please enter AWS access key ID',
 }
-global_stetting_list['aws_secret_key'] = {
+global_setting_list['aws_secret_key'] = {
     'prompt_question': 'Please enter AWS secret key',
 }
-global_stetting_list['hipchat_token'] = {
+global_setting_list['hipchat_token'] = {
     'prompt_question':
         'Please enter the token of your Hipchat with scope "viewgroup"',
     'error_handling': lambda t: GlobalSetting.is_hipchat_token_valid(t)
 }
-global_stetting_list['username'] = {
+global_setting_list['username'] = {
     'prompt_question': 'Please enter your employee ID (ex. ftan)',
     'error_handling': lambda s: GlobalSetting.is_employee_id_valid(s)
 }
@@ -66,7 +66,7 @@ class GlobalSetting:
     @staticmethod
     def read_data():
         data = dict()
-        for key in global_stetting_list:
+        for key in global_setting_list:
             value = keyring.get_password('system', key)
             data.update({key: value})
 
@@ -74,7 +74,7 @@ class GlobalSetting:
 
     @staticmethod
     def is_setting_missed():
-        for key in global_stetting_list:
+        for key in global_setting_list:
             if keyring.get_password('system', key) is None:
                 return True
         return False
@@ -106,10 +106,9 @@ class GlobalSetting:
             click.echo(str(err))
             return False
 
-
     @staticmethod
     def get_input_from_user():
-        for key, action in global_stetting_list.items():
+        for key, action in global_setting_list.items():
             default = keyring.get_password('system', key)
             prompt = action['prompt_question']
             input_value = ""

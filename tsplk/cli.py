@@ -1,6 +1,6 @@
 import click
 from . import ProjectCreation, StateMachine, GlobalSetting, ProjectSetting, \
-    ch_project_folder, project_root, global_stetting_list
+    ch_project_folder, project_root, global_setting_list
 import os
 import shutil
 from saltmaster_deployer import TerraformSaltMaster
