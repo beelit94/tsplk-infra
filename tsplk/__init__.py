@@ -27,14 +27,14 @@ global_stetting_list['aws_access_key'] = {
 global_stetting_list['aws_secret_key'] = {
     'prompt_question': 'Please enter AWS secret key',
 }
-global_stetting_list['username'] = {
-    'prompt_question': 'Please enter your employee ID (ex. ftan)',
-    'error_handling': lambda s: True if re.match(r'^[a-z]*$', s) else False
-}
 global_stetting_list['hipchat_token'] = {
     'prompt_question':
         'Please enter the token of your Hipchat with scope "viewgroup"',
     'error_handling': lambda t: GlobalSetting.is_hipchat_token_valid(t)
+}
+global_stetting_list['username'] = {
+    'prompt_question': 'Please enter your employee ID (ex. ftan)',
+    'error_handling': lambda s: GlobalSetting.is_employee_id_valid(s)
 }
 
 platform_count = [
@@ -90,6 +90,24 @@ class GlobalSetting:
             return False
 
     @staticmethod
+    def is_employee_id_valid(username):
+        # check employee id should be only [a-z]
+        if not re.match(r'^[a-z]*$', username):
+            return False
+
+        # this is a hacky way and we need to make sure we have hipchat token
+        # asked before checking user id
+        token = keyring.get_password('system', 'hipchat_token')
+        try:
+            hc = HypChat(token=token, endpoint="https://hipchat.splunk.com")
+            hc.get_user(username + '@splunk.com')
+            return True
+        except Exception as err:
+            click.echo(str(err))
+            return False
+
+
+    @staticmethod
     def get_input_from_user():
         for key, action in global_stetting_list.items():
             default = keyring.get_password('system', key)
@@ -104,7 +122,7 @@ class GlobalSetting:
                 if action['error_handling'](input_value):
                     break
                 else:
-                    click.echo('the value you enter is not valid')
+                    click.echo('the value you entered is not valid')
 
             GlobalSetting.set_value(key, input_value)
 
@@ -220,11 +238,7 @@ class SplunkVersion(State):
         while True:
             question = "Please enter package url(or empty for no splunk)\n"
             prompt = click.style(question, fg='yellow')
-            prompt2 = "Since AWS can't reach release.splunk.com, " \
-                      "and we're working with IT on this.\n" \
-                      "Please use r.susqa.com to find the package you want " \
-                      "for now\n"
-
+            prompt2 = "Please use r.susqa.com to find the package you want\n"
             prompt2 = click.style(prompt2, fg='magenta')
             prompt += prompt2
 
