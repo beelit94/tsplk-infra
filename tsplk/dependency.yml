@@ -1,4 +1,4 @@
-salty-splunk-version: hot_fix/sleep_between_construction
+salty-splunk-version: 0.4.2
 windows-2008-r2-version: 14
 windows-2012-r2-version: 16
 ubuntu-1404-version: 11
