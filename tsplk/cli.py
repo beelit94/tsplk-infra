@@ -44,6 +44,32 @@ def get_minion_full_name(full_name_list, shorted_name):
         if short_minion_name(full_name) == shorted_name:
             return full_name
 
+#todo refactor
+roles_abbreviation = {
+    'search-head': 'SH',
+    'indexer': 'IDX',
+    'indexer-cluster-master': 'IDXCM',
+    'indexer-cluster-peer': 'IDXCP',
+    'indexer-cluster-search-head': 'IDXCSH',
+    'search-head-cluster-member': 'SHCM',
+    'search-head-cluster-deployer': 'SHCD',
+    'search-head-cluster-first-captain': 'SHCFC',
+    'central-license-master': 'CLM',
+    'central-license-slave': 'CLS',
+    'deployment-server': 'DS',
+    'deployment-client': 'DC'
+}
+
+def print_roles_abbreviation_intro():
+    click.echo(click.style('Abbreviation for Splunk roles:', fg='green'))
+    for key, value in roles_abbreviation.items():
+        click.echo("  %s: %s" % (key, value))
+
+
+def prettify_role_name(roles_list):
+    new_list = [roles_abbreviation[r] for r in roles_list]
+    return ', '.join(new_list)
+
 
 @click.group()
 def main():
@@ -115,6 +141,8 @@ def status(project):
     '''
     projects_to_show = project if len(project) > 0 else projects
 
+    print_roles_abbreviation_intro()
+
     for project in projects_to_show:
         # display the project info first
         msg = click.style('Project: %s' % project, fg='green')
@@ -149,9 +177,12 @@ def status(project):
         for minion_id in minion_info:
             # todo refactor this
             row = [short_minion_name(minion_id)]
+
             for title in table_columns[1:]:
                 if title in minion_info[minion_id]:
                     cell = minion_info[minion_id][title]
+                    if title == 'roles':
+                        cell = prettify_role_name(cell)
                 else:
                     cell = ''
                 row.append(cell)
