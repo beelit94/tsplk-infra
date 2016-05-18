@@ -33,6 +33,19 @@ if 'TSPLK_LOG' in os.environ:
     log.setLevel(logging.DEBUG)
 
 
+#todo this is just a hot fix for table to display smooth in smaller screen
+#todo we should move this function to somewhere else
+def short_minion_name(long_minion_name):
+    idx = long_minion_name.rfind('-')
+    short_name = long_minion_name[(idx+1):]
+    return short_name
+
+
+def get_minion_full_name(full_name_list, shorted_name):
+    for full_name in full_name_list:
+        if short_minion_name(full_name) == shorted_name:
+            return full_name_list
+
 @click.group()
 def main():
     """This tool is to create a splunk ready environment."""
@@ -104,43 +117,53 @@ def status(project):
     projects_to_show = project if len(project) > 0 else projects
 
     for project in projects_to_show:
+        # display the project info first
         msg = click.style('Project: %s' % project, fg='green')
         click.echo(msg)
+
+        # display detail in table format
         ch_project_folder(project)
         master_var = create_master_variables(project)
-
         salt_master = TerraformSaltMaster(master_var)
 
-        print_info = ['minion_id', 'roles', 'public_ip', 'private_ip', 'instance_type']
-        print_arr = []
+        table_columns = ['minion_id',
+                         'roles',
+                         'public_ip',
+                         'private_ip',
+                         'instance_type']
+        table_cells = []
 
-        if salt_master.is_master_up():
-            master = [
-                '', 'salt-master', salt_master.get_public_ip(), '', ''
-            ]
-            print_arr.append(master)
-        else:
+        if not salt_master.is_master_up():
             click.echo('master is not up yet')
             continue
 
-        info = salt_master.get_minions_info()
-        if not info:
+        master = [
+            '', 'salt-master', salt_master.get_public_ip(), '', ''
+        ]
+        table_cells.append(master)
+
+        minion_info = salt_master.get_minions_info()
+
+        if not minion_info:
             click.echo('minion is not ready yet')
             continue
 
-        for key in info:
+        for key in minion_info:
             row = [key]
-            for title in print_info[1:]:
-                if title in info[key]:
-                    cell = info[key][title]
+            for title in table_columns[1:]:
+                if title in minion_info[key]:
+                    cell = minion_info[key][title]
+                    # todo refactor this
+                    if title == 'minion_id':
+                        cell = short_minion_name(cell)
                 else:
                     cell = ''
                 row.append(cell)
 
-            print_arr.append(row)
+            table_cells.append(row)
 
-        table = tabulate.tabulate(print_arr,
-                                  headers=print_info,
+        table = tabulate.tabulate(table_cells,
+                                  headers=table_columns,
                                   tablefmt="fancy_grid")
         click.echo(table)
 
@@ -172,7 +195,7 @@ def destroy(project):
 @click.argument("minion", nargs=1)
 def browse(project, minion):
     '''
-    open splunk page by given project and minion name
+    open splunk page by given project and minion id
     '''
     ch_project_folder(project)
     master_var = create_master_variables(project)
@@ -239,7 +262,7 @@ def ssh(project, minion):
     '''
     ssh to salt-master or a minion
     :param project: name of the project
-    :param minion: name of linux minion, if minion name is not specified, ssh to salt-master
+    :param minion: id of minion, if minion name is not specified, ssh to salt-master
     '''
     ch_project_folder(project)
     master_var = create_master_variables(project)
@@ -253,6 +276,9 @@ def ssh(project, minion):
     elif len(minion) == 1:
         minion_to_be_connected = minion[0]
         info = salt_master.get_minions_info()
+        # todo refactor this
+        minion_to_be_connected = get_minion_full_name(info.keys(),
+                                                      minion_to_be_connected)
         try:
             subprocess.call(
                 ['ssh', '-i', ssh_key,
