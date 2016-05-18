@@ -16,8 +16,6 @@ projects = [name for name in os.listdir(project_root)
             if os.path.isdir(os.path.join(project_root, name))]
 
 
-
-
 class ClickStream(object):
     def write(self, string):
         click.echo(string, err=True, nl=False)
@@ -33,18 +31,19 @@ if 'TSPLK_LOG' in os.environ:
     log.setLevel(logging.DEBUG)
 
 
-#todo this is just a hot fix for table to display smooth in smaller screen
-#todo we should move this function to somewhere else
+# todo this is just a hot fix for table to display smooth in smaller screen
+# todo we should move this function to somewhere else
 def short_minion_name(long_minion_name):
     idx = long_minion_name.rfind('-')
-    short_name = long_minion_name[(idx+1):]
+    short_name = long_minion_name[(idx + 1):]
     return short_name
 
 
 def get_minion_full_name(full_name_list, shorted_name):
     for full_name in full_name_list:
         if short_minion_name(full_name) == shorted_name:
-            return full_name_list
+            return full_name
+
 
 @click.group()
 def main():
@@ -102,7 +101,7 @@ def up(project):
 
     click.echo('Salt master started successfully! ',
                color='green')
-    log.debug('take time: %.2f' % (t1-t0))
+    log.debug('take time: %.2f' % (t1 - t0))
     click.echo('Minions is deploying by salt-master')
     click.echo("We'll send a message to Hipchat room tsplk when it's ready")
 
@@ -128,9 +127,8 @@ def status(project):
 
         table_columns = ['minion_id',
                          'roles',
-                         'public_ip',
                          'private_ip',
-                         'instance_type']
+                         'public_ip']
         table_cells = []
 
         if not salt_master.is_master_up():
@@ -138,7 +136,7 @@ def status(project):
             continue
 
         master = [
-            '', 'salt-master', salt_master.get_public_ip(), '', ''
+            '', 'salt-master', salt_master.get_public_ip(), ''
         ]
         table_cells.append(master)
 
@@ -148,14 +146,12 @@ def status(project):
             click.echo('minion is not ready yet')
             continue
 
-        for key in minion_info:
-            row = [key]
+        for minion_id in minion_info:
+            # todo refactor this
+            row = [short_minion_name(minion_id)]
             for title in table_columns[1:]:
-                if title in minion_info[key]:
-                    cell = minion_info[key][title]
-                    # todo refactor this
-                    if title == 'minion_id':
-                        cell = short_minion_name(cell)
+                if title in minion_info[minion_id]:
+                    cell = minion_info[minion_id][title]
                 else:
                     cell = ''
                 row.append(cell)
@@ -225,6 +221,7 @@ def rdp(project):
         click.echo(msg + ps.data['terraform']['rdp_password'])
     else:
         click.echo('no rdp password for this project')
+
 
 @click.command()
 def version():
@@ -304,7 +301,8 @@ def saltdoc():
     salt doc
     '''
     doc_path = os.path.dirname(os.path.abspath(__file__))
-    doc_path = os.path.join(doc_path, 'salt', 'docs', 'build', 'html', 'splunk.html')
+    doc_path = os.path.join(doc_path, 'salt', 'docs', 'build', 'html',
+                            'splunk.html')
     cmd = 'open %s' % doc_path
     subprocess.call(cmd, shell=True)
 
