@@ -198,6 +198,7 @@ def browse(project, minion):
     salt_master = TerraformSaltMaster(master_var)
 
     info = salt_master.get_minions_info()
+    minion = get_minion_full_name(info.keys(), minion)
     for i in info:
         if i == minion:
             subprocess.call(
