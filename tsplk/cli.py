@@ -62,8 +62,13 @@ roles_abbreviation = {
 
 def print_roles_abbreviation_intro():
     click.echo(click.style('Abbreviation for Splunk roles:', fg='green'))
+    name_list = []
     for key, value in roles_abbreviation.items():
-        click.echo("  %s: %s" % (key, value))
+        name_list.append(
+            click.style("  %s: " % value, fg='yellow') + "%s" % key)
+
+    for str_name in sorted(name_list):
+        click.echo(str_name)
 
 
 def prettify_role_name(roles_list):
