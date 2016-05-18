@@ -16,8 +16,6 @@ projects = [name for name in os.listdir(project_root)
             if os.path.isdir(os.path.join(project_root, name))]
 
 
-
-
 class ClickStream(object):
     def write(self, string):
         click.echo(string, err=True, nl=False)
@@ -31,6 +29,51 @@ log.setLevel(logging.ERROR)
 
 if 'TSPLK_LOG' in os.environ:
     log.setLevel(logging.DEBUG)
+
+
+# todo this is just a hot fix for table to display smooth in smaller screen
+# todo we should move this function to somewhere else
+def short_minion_name(long_minion_name):
+    idx = long_minion_name.rfind('-')
+    short_name = long_minion_name[(idx + 1):]
+    return short_name
+
+
+def get_minion_full_name(full_name_list, shorted_name):
+    for full_name in full_name_list:
+        if short_minion_name(full_name) == shorted_name:
+            return full_name
+
+#todo refactor
+roles_abbreviation = {
+    'search-head': 'SH',
+    'indexer': 'IDX',
+    'indexer-cluster-master': 'IDXCM',
+    'indexer-cluster-peer': 'IDXCP',
+    'indexer-cluster-search-head': 'IDXCSH',
+    'search-head-cluster-member': 'SHCM',
+    'search-head-cluster-deployer': 'SHCD',
+    'search-head-cluster-first-captain': 'SHCFC',
+    'central-license-master': 'CLM',
+    'central-license-slave': 'CLS',
+    'deployment-server': 'DS',
+    'deployment-client': 'DC'
+}
+
+def print_roles_abbreviation_intro():
+    click.echo(click.style('Abbreviation for Splunk roles:', fg='green'))
+    name_list = []
+    for key, value in roles_abbreviation.items():
+        name_list.append(
+            click.style("  %s: " % value, fg='yellow') + "%s" % key)
+
+    for str_name in sorted(name_list):
+        click.echo(str_name)
+
+
+def prettify_role_name(roles_list):
+    new_list = [roles_abbreviation[r] for r in roles_list]
+    return ', '.join(new_list)
 
 
 @click.group()
@@ -89,7 +132,7 @@ def up(project):
 
     click.echo('Salt master started successfully! ',
                color='green')
-    log.debug('take time: %.2f' % (t1-t0))
+    log.debug('take time: %.2f' % (t1 - t0))
     click.echo('Minions is deploying by salt-master')
     click.echo("We'll send a message to Hipchat room tsplk when it's ready")
 
@@ -103,44 +146,57 @@ def status(project):
     '''
     projects_to_show = project if len(project) > 0 else projects
 
+    print_roles_abbreviation_intro()
+
     for project in projects_to_show:
+        # display the project info first
         msg = click.style('Project: %s' % project, fg='green')
         click.echo(msg)
+
+        # display detail in table format
         ch_project_folder(project)
         master_var = create_master_variables(project)
-
         salt_master = TerraformSaltMaster(master_var)
 
-        print_info = ['minion_id', 'roles', 'public_ip', 'private_ip', 'instance_type']
-        print_arr = []
+        table_columns = ['minion_id',
+                         'roles',
+                         'private_ip',
+                         'public_ip']
+        table_cells = []
 
-        if salt_master.is_master_up():
-            master = [
-                '', 'salt-master', salt_master.get_public_ip(), '', ''
-            ]
-            print_arr.append(master)
-        else:
+        if not salt_master.is_master_up():
             click.echo('master is not up yet')
             continue
 
-        info = salt_master.get_minions_info()
-        if not info:
+        master = [
+            '', 'salt-master', salt_master.get_public_ip(), ''
+        ]
+        table_cells.append(master)
+
+        minion_info = salt_master.get_minions_info()
+
+        if not minion_info:
             click.echo('minion is not ready yet')
             continue
 
-        for key in info:
-            row = [key]
-            for title in print_info[1:]:
-                if title in info[key]:
-                    cell = info[key][title]
+        for minion_id in sorted(minion_info,
+                                key=lambda a: int(short_minion_name(a))):
+            # todo refactor this
+            column = [short_minion_name(minion_id)]
+
+            for title in table_columns[1:]:
+                if title in minion_info[minion_id]:
+                    cell = minion_info[minion_id][title]
+                    if title == 'roles':
+                        cell = prettify_role_name(cell)
                 else:
                     cell = ''
-                row.append(cell)
+                column.append(cell)
 
-            print_arr.append(row)
+            table_cells.append(column)
 
-        table = tabulate.tabulate(print_arr,
-                                  headers=print_info,
+        table = tabulate.tabulate(table_cells,
+                                  headers=table_columns,
                                   tablefmt="fancy_grid")
         click.echo(table)
 
@@ -172,13 +228,14 @@ def destroy(project):
 @click.argument("minion", nargs=1)
 def browse(project, minion):
     '''
-    open splunk page by given project and minion name
+    open splunk page by given project and minion id
     '''
     ch_project_folder(project)
     master_var = create_master_variables(project)
     salt_master = TerraformSaltMaster(master_var)
 
     info = salt_master.get_minions_info()
+    minion = get_minion_full_name(info.keys(), minion)
     for i in info:
         if i == minion:
             subprocess.call(
@@ -202,6 +259,7 @@ def rdp(project):
         click.echo(msg + ps.data['terraform']['rdp_password'])
     else:
         click.echo('no rdp password for this project')
+
 
 @click.command()
 def version():
@@ -239,7 +297,7 @@ def ssh(project, minion):
     '''
     ssh to salt-master or a minion
     :param project: name of the project
-    :param minion: name of linux minion, if minion name is not specified, ssh to salt-master
+    :param minion: id of minion, if minion name is not specified, ssh to salt-master
     '''
     ch_project_folder(project)
     master_var = create_master_variables(project)
@@ -253,6 +311,9 @@ def ssh(project, minion):
     elif len(minion) == 1:
         minion_to_be_connected = minion[0]
         info = salt_master.get_minions_info()
+        # todo refactor this
+        minion_to_be_connected = get_minion_full_name(info.keys(),
+                                                      minion_to_be_connected)
         try:
             subprocess.call(
                 ['ssh', '-i', ssh_key,
@@ -278,7 +339,8 @@ def saltdoc():
     salt doc
     '''
     doc_path = os.path.dirname(os.path.abspath(__file__))
-    doc_path = os.path.join(doc_path, 'salt', 'docs', 'build', 'html', 'splunk.html')
+    doc_path = os.path.join(doc_path, 'salt', 'docs', 'build', 'html',
+                            'splunk.html')
     cmd = 'open %s' % doc_path
     subprocess.call(cmd, shell=True)
 
