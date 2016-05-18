@@ -179,9 +179,10 @@ def status(project):
             click.echo('minion is not ready yet')
             continue
 
-        for minion_id in minion_info:
+        for minion_id in sorted(minion_info,
+                                key=lambda a: int(short_minion_name(a))):
             # todo refactor this
-            row = [short_minion_name(minion_id)]
+            column = [short_minion_name(minion_id)]
 
             for title in table_columns[1:]:
                 if title in minion_info[minion_id]:
@@ -190,9 +191,9 @@ def status(project):
                         cell = prettify_role_name(cell)
                 else:
                     cell = ''
-                row.append(cell)
+                column.append(cell)
 
-            table_cells.append(row)
+            table_cells.append(column)
 
         table = tabulate.tabulate(table_cells,
                                   headers=table_columns,
