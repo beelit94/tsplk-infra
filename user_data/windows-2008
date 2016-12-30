@@ -1,0 +1,27 @@
+<powershell>
+net user Administrator "${rdp_password}"
+wmic useraccount where "name='Administrator'" set PasswordExpires=FALSE
+CD C:\
+NEW-ITEM –name listdisk.txt –itemtype file –force | OUT-NULL
+ADD-CONTENT –path listdisk.txt “LIST DISK”
+$LISTDISK=(DISKPART /S LISTDISK.TXT)
+$TOTALDISK=($LISTDISK.count)-7
+NEW-ITEM –name bootemup.txt –itemtype file –force | OUT-NULL
+foreach($i in 0..($TOTALDISK-1))
+{
+$FREE = $LISTDISK[$i-$TOTALDISK].substring(34,9).replace(" ","")
+$FREE = $FREE -replace "([A-Z]+)",""
+if ($FREE -ne '0')
+{
+ADD-CONTENT -Path bootemup.txt -Value “SELECT DISK $i”
+ADD-CONTENT -Path bootemup.txt -Value “SELECT PARTITION 1”
+ADD-CONTENT -Path bootemup.txt -Value “EXTEND”
+}
+}
+DISKPART /S bootemup.txt >> extend.log
+</powershell>
+
+<script>
+REM config minion
+python C:\\update_minion_conf.py --kv master=${salt_master_ip} --kv id=${minion_id} --kv log_level=debug
+</script>
