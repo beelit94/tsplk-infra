@@ -12,15 +12,9 @@ variable "atlas_token" {}
 
 
 //tsplk info =============================
-variable "username" {
-  default = "tu"
-}
-variable "project_name" {
-  default = "tp"
-}
-variable "master_instance_type" {
-  default = "t2.small"
-}
+variable "username" {}
+variable "project_name" {}
+variable "master_instance_type" {}
 
 // number of minion id as key, platform as value.
 variable "platforms" {
@@ -46,7 +40,7 @@ variable "user_data_map" {
   type = "map"
   default = {
     "ubuntu-1404" = "linux",
-    "windows-2008-r2" = "windows-2008",
+    "windows-2008-r2" = "windows",
     "windows-2012-r2" = "windows",
   }
 }
@@ -55,9 +49,7 @@ variable "user_data_map" {
 // global info
 variable "access_key" {}
 variable "secret_key" {}
-variable "aws_zone_id" {
-  default = "Z2MXLZU3PRPZ6S"
-}
+variable "aws_zone_id" {}
 variable "aws_region" {
   default = "us-west-2"
 }
