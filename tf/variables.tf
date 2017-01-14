@@ -28,14 +28,17 @@ variable "master_instance_type" {}
 // number of minion id as key, platform as value.
 variable "platforms" {
   type = "map"
+  default = {}
 }
 // number of minion id as key, volume_size as value.
 variable "volume_sizes" {
   type = "map"
+  default = {}
 }
 // number of minion id as key, instance_type as value.
 variable "instance_types" {
   type = "map"
+  default = {}
 }
 
 // aws info ===================================
