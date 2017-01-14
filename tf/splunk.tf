@@ -22,7 +22,7 @@ data "atlas_artifact" "tsplk-artifact" {
 }
 
 data "template_file" "user-data" {
-  template = "${file("${path.cwd}/user_data/${lookup(var.user_data_map, lookup(var.platforms, count.index))}")}"
+  template = "${file("${path.module}/user_data/${lookup(var.user_data_map, lookup(var.platforms, count.index))}")}"
   count = "${length(keys(var.platforms))}"
   vars {
 //    todo should use public dns instead
