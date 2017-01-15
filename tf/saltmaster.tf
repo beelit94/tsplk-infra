@@ -27,6 +27,7 @@ resource "aws_instance" "saltmaster" {
     volume_size = "50"
   }
 
+  user_data = "${var.master_user_data == "" ? var.master_user_data: file("${var.master_user_data}")}}"
 }
 
 resource "aws_eip" "salt-master-eip" {
