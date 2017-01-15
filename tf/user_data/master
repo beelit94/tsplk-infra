@@ -1,0 +1,4 @@
+#!/bin/bash
+s3cmd sync s3://tsplk/<project-name>/<user-name> /srv/salt/data
+salt-call state.apply tsplk
+salt-run state.apply

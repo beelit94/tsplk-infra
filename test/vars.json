@@ -17,12 +17,14 @@
     "0": "windows-2012-r2"
   },
 
-  "volume_sizes": {
-    "0": "80"
+  "master_files": {
+    "0": "test/test_upload",
+    "1": "test/test_upload2"
   },
 
-  "instance_types": {
-    "0": "m3.large"
+  "master_file_names": {
+    "0": "test_upload",
+    "1": "test_upload2"
   }
 }
 
