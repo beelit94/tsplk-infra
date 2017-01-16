@@ -21,9 +21,7 @@
 
   "master_file_names": {
     "0": "id_rsa"
-  },
-
-  "master_user_data": "test/master_user_data"
+  }
 }
 
 

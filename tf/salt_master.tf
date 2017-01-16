@@ -10,7 +10,7 @@ resource "aws_key_pair" "key" {
 }
 
 data "template_file" "master-user-data" {
-  template = "${file("${path.module}/master_user_data")}"
+  template = "${file("${path.module}/master")}"
   vars {
     user = "${var.username}"
     project = "${var.project_name}"
