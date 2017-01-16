@@ -1,4 +1,4 @@
-data "atlas_artifact" "saltmaster" {
+data "atlas_artifact" "salt_master" {
   name = "splunk-sus-qa/ubuntu-1404-saltmaster"
   type = "amazon.ami"
   version = "${var.atlas_version["salt-master"]}"
@@ -9,8 +9,17 @@ resource "aws_key_pair" "key" {
   public_key = "${file("${path.cwd}/${var.public_key_path}")}"
 }
 
-resource "aws_instance" "saltmaster" {
-  ami = "${data.atlas_artifact.saltmaster.metadata_full.ami_id}"
+data "template_file" "master-user-data" {
+  template = "${file("${path.module}/master_user_data")}"
+  vars {
+    user = "${var.username}"
+    project = "${var.project_name}"
+    tsplk_formula_version = "${var.tsplk_formula_version}"
+  }
+}
+
+resource "aws_instance" "salt_master" {
+  ami = "${data.atlas_artifact.salt_master.metadata_full.ami_id}"
   instance_type = "${var.master_instance_type}"
   vpc_security_group_ids = "${var.aws_security_group_ids[var.aws_region]}"
   tags {
@@ -27,18 +36,19 @@ resource "aws_instance" "saltmaster" {
     volume_size = "50"
   }
 
-  user_data = "${var.master_user_data == "" ? var.master_user_data: file("${var.master_user_data}")}}"
+  user_data = "${data.template_file.master-user-data.rendered}"
+  iam_instance_profile = "tsplk"
 }
 
 resource "aws_eip" "salt-master-eip" {
   vpc = true
-  instance = "${aws_instance.saltmaster.id}"
+  instance = "${aws_instance.salt_master.id}"
 }
 
 resource "aws_route53_record" "salt-master-record" {
   // same number of records as instances
   zone_id = "${var.aws_zone_id}"
-  name = "${var.username}-${var.project_name}-saltmaster"
+  name = "${var.username}-${var.project_name}-salt-master"
   type = "CNAME"
   ttl = "300"
   // matches up record N to instance N
@@ -49,7 +59,7 @@ resource "aws_route53_record" "salt-master-record" {
 resource "aws_s3_bucket_object" "pillar_data" {
   count = "${length(keys(var.master_files))}"
   bucket = "${var.tsplk_bucket_name}"
-  key = "${var.username}-${var.project_name}/${lookup(var.master_file_names, count.index)}"
+  key = "${var.username}/${var.project_name}/${lookup(var.master_file_names, count.index)}"
   source = "${path.cwd}/${lookup(var.master_files, count.index)}"
   etag = "${md5(file("${lookup(var.master_files, count.index)}"))}"
 }

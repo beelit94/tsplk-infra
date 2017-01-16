@@ -13,19 +13,17 @@
   },
   "master_instance_type": "t2.small",
   "public_key_path": "test/key_for_test.pub",
-  "platforms": {
-    "0": "windows-2012-r2"
-  },
+
 
   "master_files": {
-    "0": "test/test_upload",
-    "1": "test/test_upload2"
+    "0": "test/id_rsa"
   },
 
   "master_file_names": {
-    "0": "test_upload",
-    "1": "test_upload2"
-  }
+    "0": "id_rsa"
+  },
+
+  "master_user_data": "test/master_user_data"
 }
 
 

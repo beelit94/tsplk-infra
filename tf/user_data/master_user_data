@@ -1,0 +1,30 @@
+#!/bin/bash
+# todo no use for now, don't know why
+chown -R ubuntu /etc/salt /var/cache/salt /var/log/salt /var/run/salt /srv /etc/salt/pki
+
+# sync formula itself first
+salt-call \
+    --log-file=/var/log/tsplk.log \
+    --log-file-level=warning \
+    --file-root=/srv/tsplk-formula/salt \
+    --local \
+    state.apply tsplk-formula \
+    pillar='{"tsplk": {"tsplk-formula": {"version": "${tsplk_formula_version}"}}}'
+
+# config salt master with latest tsplk-formula
+salt-call \
+    --id="tsplk-master-bootstrap" \
+    --log-file=/var/log/tsplk.log \
+    --log-file-level=warning \
+    --file-root=/srv/tsplk-formula/salt \
+    --local \
+    state.highstate \
+    pillar='{"tsplk": {"user": "${user}", "project": "${project}"}}'
+
+# don't run as local since we need data from s3
+salt-call \
+    --log-file=/var/log/tsplk.log \
+    --log-file-level=warning \
+    state.highstate
+
+

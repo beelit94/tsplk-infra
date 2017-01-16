@@ -20,6 +20,9 @@ variable "public_key_path" {}
 variable "rdp_password" {
   default = "win@ChangeThis"
 }
+variable "tsplk_formula_version" {
+  default = "master"
+}
 
 // tsplk master info ===========================
 variable "master_instance_type" {}
@@ -76,9 +79,7 @@ variable "user_data_map" {
   }
 }
 variable "tsplk_bucket_name" {
-  default = "tsplk"
+  default = "tsplk-bucket"
 }
-variable "master_user_data" {
-  default = ""
-}
+variable "master_user_data" {}
 
