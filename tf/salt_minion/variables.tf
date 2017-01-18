@@ -20,25 +20,10 @@ variable "public_key_path" {}
 variable "rdp_password" {
   default = "win@ChangeThis"
 }
-variable "tsplk_formula_version" {
-  default = "master"
-}
 
 // tsplk master info ===========================
-variable "master_instance_type" {}
-variable "master_files" {
-  // data file paths to sync to tsplk master,
-  // which sould be relative to working folder(project folder in tsplk)
-  type = "map"
-  default = {}
-}
-
-variable "master_file_names" {
-  // same as master_files, pass only name here
-  // todo json terraform dict problem
-  type = "map"
-  default = {}
-}
+variable "master_record_name" {}
+variable "key_pair_name" {}
 
 // tpslk minion info ===========================
 // number of minion id as key, platform as value.
@@ -59,8 +44,6 @@ variable "instance_types" {
 
 // aws info ===================================
 // global info
-variable "access_key" {}
-variable "secret_key" {}
 variable "aws_zone_id" {}
 variable "aws_region" {
   default = "us-west-2"
@@ -77,8 +60,5 @@ variable "user_data_map" {
     "windows-2008-r2" = "windows",
     "windows-2012-r2" = "windows",
   }
-}
-variable "tsplk_bucket_name" {
-  default = "tsplk-bucket"
 }
 

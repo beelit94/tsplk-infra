@@ -1,3 +1,7 @@
+provider "aws" {
+    region = "${var.aws_region}"
+}
+
 data "atlas_artifact" "salt_master" {
   name = "splunk-sus-qa/ubuntu-1404-saltmaster"
   type = "amazon.ami"

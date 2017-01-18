@@ -24,7 +24,7 @@ data "template_file" "user-data" {
   count = "${length(keys(var.platforms))}"
   vars {
 //    todo should use public dns instead
-    salt_master_ip = "${aws_route53_record.salt-master-record.name}.${data.aws_route53_zone.tsplk-zone.name}"
+    salt_master_ip = "${var.master_record_name}.${data.aws_route53_zone.tsplk-zone.name}"
     minion_id = "${var.username}-${var.project_name}-${count.index}"
     rdp_password = "${var.rdp_password}"
   }
@@ -42,7 +42,7 @@ resource "aws_instance" "splunk-instance" {
     Project = "${var.project_name}"
     Platform = "${lookup(var.platforms, count.index)}"
   }
-  key_name = "${aws_key_pair.key.key_name}"
+  key_name = "${var.key_pair_name}"
 
   root_block_device {
     volume_size = "${lookup(var.volume_sizes, count.index)}"
