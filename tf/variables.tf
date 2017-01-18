@@ -59,8 +59,6 @@ variable "instance_types" {
 
 // aws info ===================================
 // global info
-variable "access_key" {}
-variable "secret_key" {}
 variable "aws_zone_id" {}
 variable "aws_region" {
   default = "us-west-2"
