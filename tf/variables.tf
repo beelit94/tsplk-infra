@@ -81,5 +81,4 @@ variable "user_data_map" {
 variable "tsplk_bucket_name" {
   default = "tsplk-bucket"
 }
-variable "master_user_data" {}
 

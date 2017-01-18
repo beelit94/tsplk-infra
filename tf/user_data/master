@@ -21,10 +21,5 @@ salt-call \
     state.highstate \
     pillar='{"tsplk": {"user": "${user}", "project": "${project}"}}'
 
-# don't run as local since we need data from s3
-salt-call \
-    --log-file=/var/log/tsplk.log \
-    --log-file-level=warning \
-    state.highstate
-
+salt-run salt.cmd state.apply tsplk-run
 

@@ -10,7 +10,7 @@ resource "aws_key_pair" "key" {
 }
 
 data "template_file" "master-user-data" {
-  template = "${file("${path.module}/master")}"
+  template = "${file("${path.module}/user_data/master")}"
   vars {
     user = "${var.username}"
     project = "${var.project_name}"
@@ -59,7 +59,7 @@ resource "aws_route53_record" "salt-master-record" {
 resource "aws_s3_bucket_object" "pillar_data" {
   count = "${length(keys(var.master_files))}"
   bucket = "${var.tsplk_bucket_name}"
-  key = "${var.username}/${var.project_name}/${lookup(var.master_file_names, count.index)}"
+  key = "base/${var.username}/${var.project_name}/${lookup(var.master_file_names, count.index)}"
   source = "${path.cwd}/${lookup(var.master_files, count.index)}"
   etag = "${md5(file("${lookup(var.master_files, count.index)}"))}"
 }

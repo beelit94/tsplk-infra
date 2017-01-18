@@ -14,13 +14,26 @@
   "master_instance_type": "t2.small",
   "public_key_path": "test/key_for_test.pub",
 
+  "platforms": {
+    "0": "windows-2012-r2"
+  },
+
+  "instance_types": {
+    "0": "m3.large"
+  },
+
+  "volume_sizes": {
+    "0": "50"
+  },
 
   "master_files": {
-    "0": "test/id_rsa"
+    "0": "test/vars.json",
+    "1": "test/pillar/top.sls"
   },
 
   "master_file_names": {
-    "0": "id_rsa"
+    "0": "id_rsa",
+    "1": "pillar/top.sls"
   }
 }
 
