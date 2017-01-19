@@ -11,8 +11,6 @@ module "master" {
   public_key_path = "${var.public_key_path}"
   tsplk_formula_version = "${var.tsplk_formula_version}"
   master_instance_type = "${var.master_instance_type}"
-  master_files = "${var.master_files}"
-  master_file_names = "${var.master_file_names}"
   aws_zone_id = "${var.aws_zone_id}"
   aws_security_group_ids = "${var.aws_security_group_ids}"
   tsplk_bucket_name = "${var.tsplk_bucket_name}"
