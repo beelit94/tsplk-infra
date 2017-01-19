@@ -21,5 +21,6 @@ salt-call \
     state.highstate \
     pillar='{"tsplk": {"user": "${user}", "project": "${project}"}}'
 
+# spin-up minion, provisioning, sending message, after master is configured
 salt-run salt.cmd state.apply tsplk-run
 

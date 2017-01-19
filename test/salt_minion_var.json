@@ -5,14 +5,15 @@
     "windows-2012-r2": "latest",
     "salt-master": "latest"
   },
-  "username": "tu",
-  "project_name": "tp",
+  "username": "testuser",
+  "project_name": "testproject",
   "aws_zone_id": "Z2MXLZU3PRPZ6S",
   "aws_security_group_ids": {
     "us-west-2": ["sg-2877344c"]
   },
-  "master_instance_type": "t2.small",
-  "public_key_path": "../test/key_for_test.pub",
+  "public_key_path": "data/key_for_test.pub",
+  "master_record_name": "",
+  "key_pair_name": "tsplk-testuser-testproject",
 
   "platforms": {
     "0": "windows-2012-r2"
@@ -24,16 +25,6 @@
 
   "volume_sizes": {
     "0": "50"
-  },
-
-  "master_files": {
-    "0": "../test/vars.json",
-    "1": "../test/pillar/top.sls"
-  },
-
-  "master_file_names": {
-    "0": "pillar/vars.json",
-    "1": "pillar/top.sls"
   }
 }
 

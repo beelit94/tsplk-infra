@@ -1,0 +1,34 @@
+{
+  "atlas_version": {
+    "ubuntu-1404": "latest",
+    "windows-2008-r2": "latest",
+    "windows-2012-r2": "latest",
+    "salt-master": "latest"
+  },
+  "username": "testuser",
+  "project_name": "testproject",
+  "aws_zone_id": "Z2MXLZU3PRPZ6S",
+  "aws_security_group_ids": {
+    "us-west-2": ["sg-2877344c"]
+  },
+  "master_instance_type": "t2.small",
+  "public_key_path": "test/key_for_test.pub",
+
+  "tsplk_formula_version": "master",
+
+  "master_files": {
+    "0": "test/salt_minion_var.json",
+    "1": "test/pillar/top.sls",
+    "2": "test/pillar/tsplk.sls",
+    "3": "test/key_for_test.pub"
+  },
+
+  "master_file_names": {
+    "0": "data/salt_minion_var.json",
+    "1": "pillar/top.sls",
+    "2": "pillar/tsplk.sls",
+    "3": "data/key_for_test.pub"
+  }
+}
+
+
