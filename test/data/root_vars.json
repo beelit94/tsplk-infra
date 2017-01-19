@@ -13,11 +13,12 @@
     "us-west-2": ["sg-2877344c"]
   },
   "master_instance_type": "t2.small",
-  "public_key_path": "../../test/key_for_test.pub",
+  "public_key_path": "../test/data/files/key_for_test.pub",
+  "private_key_path": "../test/data/files/id_rsa",
 
   "tsplk_formula_version": "master",
 
-  "master_files": "../test/data/",
+  "master_files": "../test/data",
 
   "platforms": {
     "0": "windows-2012-r2"

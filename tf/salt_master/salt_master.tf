@@ -45,6 +45,17 @@ resource "aws_instance" "salt_master" {
 
   user_data = "${data.template_file.master-user-data.rendered}"
   iam_instance_profile = "tsplk"
+
+  connection {
+    type = "ssh"
+    user = "ubuntu"
+    private_key = "${var.private_key_path}"
+  }
+
+  provisioner "file" {
+    source = "${var.master_files}"
+    destination = "/srv"
+  }
 }
 
 resource "aws_eip" "salt-master-eip" {

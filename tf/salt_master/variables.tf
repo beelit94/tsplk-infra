@@ -16,12 +16,14 @@ variable "username" {}
 variable "project_name" {}
 // relative path of working folder
 variable "public_key_path" {}
+variable "private_key_path" {}
 variable "tsplk_formula_version" {
   default = "master"
 }
 
 // tsplk master info ===========================
 variable "master_instance_type" {}
+variable "master_files" {}
 
 // aws info ===================================
 // global info

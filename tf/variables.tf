@@ -16,6 +16,7 @@ variable "username" {}
 variable "project_name" {}
 // relative path of working folder
 variable "public_key_path" {}
+variable "private_key_path" {}
 // rdp password of windows vm
 variable "rdp_password" {
   default = "win@ChangeThis"
@@ -26,6 +27,7 @@ variable "tsplk_formula_version" {
 
 // tsplk master info ===========================
 variable "master_instance_type" {}
+variable "master_files" {}
 
 // tpslk minion info ===========================
 // number of minion id as key, platform as value.

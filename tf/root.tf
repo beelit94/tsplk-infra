@@ -14,6 +14,8 @@ module "master" {
   aws_zone_id = "${var.aws_zone_id}"
   aws_security_group_ids = "${var.aws_security_group_ids}"
   tsplk_bucket_name = "${var.tsplk_bucket_name}"
+  private_key_path = "${var.private_key_path}"
+  master_files = "${var.master_files}"
 }
 
 module "minion" {
