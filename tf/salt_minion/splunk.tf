@@ -1,11 +1,9 @@
 provider "atlas" {
-  # You can also set the atlas token by exporting
-  # ATLAS_TOKEN into your env
   token = "${var.atlas_token}"
 }
 
 provider "aws" {
-    region = "${var.aws_region}"
+  region = "${var.aws_region}"
 }
 
 data "aws_route53_zone" "tsplk-zone" {

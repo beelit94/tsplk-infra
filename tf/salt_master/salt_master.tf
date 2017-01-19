@@ -1,5 +1,9 @@
 provider "aws" {
-    region = "${var.aws_region}"
+  region = "${var.aws_region}"
+}
+
+provider "atlas" {
+  token = "${var.atlas_token}"
 }
 
 data "atlas_artifact" "salt_master" {
