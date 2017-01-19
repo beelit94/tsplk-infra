@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
 user=$(cat test/salt_master_var.json | jq -r .'username')
 project=$(cat test/salt_master_var.json | jq -r .'project_name')
-terraform remote config -backend=s3 -backend-config="bucket=tsplk-bucket" \
--backend-config="key=base/$user/$project/terraform.tfstate" \
--backend-config="region=us-west-2"
-terraform apply -var-file=test/salt_master_var.json tf/salt_master
+aws_region=$(cat test/salt_master_var.json | jq -r .'aws_region')
+
+terraform apply -var="username=$user" -var="aws_region=$aws_region" tf/simple_bucket
+
+mkdir -p tmp/salt_master
+cp -r tf/salt_master/* tmp/salt_master
+cd tmp/salt_master
+
+terraform remote config -backend=s3 -backend-config="bucket=tsplk-$user" \
+-backend-config="key=base/$project/salt_master.tfstate" \
+-backend-config="region=$aws_region"
+terraform apply -var-file=../../test/salt_master_var.json
+
+cd ../..

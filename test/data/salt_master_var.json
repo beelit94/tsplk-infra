@@ -5,6 +5,7 @@
     "windows-2012-r2": "latest",
     "salt-master": "latest"
   },
+  "aws_region": "us-west-2",
   "username": "testuser",
   "project_name": "testproject",
   "aws_zone_id": "Z2MXLZU3PRPZ6S",
@@ -12,15 +13,15 @@
     "us-west-2": ["sg-2877344c"]
   },
   "master_instance_type": "t2.small",
-  "public_key_path": "test/key_for_test.pub",
+  "public_key_path": "../../test/key_for_test.pub",
 
   "tsplk_formula_version": "master",
 
   "master_files": {
-    "0": "test/salt_minion_var.json",
-    "1": "test/pillar/top.sls",
-    "2": "test/pillar/tsplk.sls",
-    "3": "test/key_for_test.pub"
+    "0": "../../test/salt_minion_var.json",
+    "1": "../../test/pillar/top.sls",
+    "2": "../../test/pillar/tsplk.sls",
+    "3": "../../test/key_for_test.pub"
   },
 
   "master_file_names": {

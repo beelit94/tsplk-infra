@@ -66,13 +66,9 @@ resource "aws_route53_record" "salt-master-record" {
 
 resource "aws_s3_bucket_object" "pillar_data" {
   count = "${length(keys(var.master_files))}"
-  bucket = "${aws_s3_bucket.user_bucket.bucket}"
+//  todo this is hard code by using simple bucket to create the bucket we needed
+  bucket = "tsplk-${var.username}"
   key = "base/${var.project_name}/${lookup(var.master_file_names, count.index)}"
   source = "${path.cwd}/${lookup(var.master_files, count.index)}"
   etag = "${md5(file("${lookup(var.master_files, count.index)}"))}"
-}
-
-resource "aws_s3_bucket" "user_bucket" {
-  bucket = "tsplk-${var.username}"
-  region = "${var.aws_region}"
 }
