@@ -35,7 +35,6 @@ resource "aws_instance" "salt_master" {
     User = "${var.username}"
     Project = "${var.project_name}"
   }
-  depends_on = ["aws_s3_bucket_object.pillar_data"]
 
   key_name = "${aws_key_pair.key.key_name}"
 
@@ -62,13 +61,4 @@ resource "aws_route53_record" "salt-master-record" {
   // matches up record N to instance N
 //  todo due to bug https://github.com/hashicorp/terraform/issues/3216
   records = ["ec2-${replace("${aws_eip.salt-master-eip.public_ip}", ".", "-")}.${var.aws_region}.compute.amazonaws.com"]
-}
-
-resource "aws_s3_bucket_object" "pillar_data" {
-  count = "${length(keys(var.master_files))}"
-//  todo this is hard code by using simple bucket to create the bucket we needed
-  bucket = "tsplk-${var.username}"
-  key = "base/${var.project_name}/${lookup(var.master_file_names, count.index)}"
-  source = "${path.cwd}/${lookup(var.master_files, count.index)}"
-  etag = "${md5(file("${lookup(var.master_files, count.index)}"))}"
 }

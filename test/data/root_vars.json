@@ -17,7 +17,19 @@
 
   "tsplk_formula_version": "master",
 
-  "master_files": "../test/data/"
+  "master_files": "../test/data/",
+
+  "platforms": {
+    "0": "windows-2012-r2"
+  },
+
+  "instance_types": {
+    "0": "m3.large"
+  },
+
+  "volume_sizes": {
+    "0": "50"
+  }
 }
 
 
