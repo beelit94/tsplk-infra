@@ -11,8 +11,6 @@
   "aws_security_group_ids": {
     "us-west-2": ["sg-2877344c"]
   },
-  "master_record_name": "testuser-testproject-salt-master",
-  "key_pair_name": "tsplk-testuser-testproject",
 
   "platforms": {
     "0": "windows-2012-r2"

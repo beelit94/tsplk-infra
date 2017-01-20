@@ -20,8 +20,8 @@ variable "rdp_password" {
 }
 
 // tsplk master info ===========================
-variable "master_record_name" {}
-variable "key_pair_name" {}
+//variable "master_record_name" {}
+//variable "key_pair_name" {}
 
 // tpslk minion info ===========================
 // number of minion id as key, platform as value.

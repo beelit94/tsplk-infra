@@ -68,7 +68,8 @@ resource "aws_eip" "salt-master-eip" {
 resource "aws_route53_record" "salt-master-record" {
   // same number of records as instances
   zone_id = "${var.aws_zone_id}"
-  name = "${var.username}-${var.project_name}-salt-master"
+  // todo, beaware we hard code saltmaster name here
+  name = "${var.username}-${var.project_name}-saltmaster"
   type = "CNAME"
   ttl = "300"
   // matches up record N to instance N
@@ -80,7 +81,7 @@ resource "aws_s3_bucket_object" "pillar_data" {
   count = "${length(keys(var.master_files))}"
 //  todo this is hard code by using simple bucket to create the bucket we needed
   bucket = "tsplk-bucket"
-  key = "base/${var.username}-${var.project_name}/${lookup(var.master_file_names, count.index)}"
+  key = "${var.username}-${var.project_name}/${lookup(var.master_file_names, count.index)}"
   source = "${path.cwd}/${lookup(var.master_files, count.index)}"
   etag = "${md5(file("${lookup(var.master_files, count.index)}"))}"
 }
