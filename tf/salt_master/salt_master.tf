@@ -48,16 +48,6 @@ resource "aws_instance" "salt_master" {
 
   depends_on = ["aws_s3_bucket_object.pillar_data"]
 
-//  connection {
-//    type = "ssh"
-//    user = "ubuntu"
-//    private_key = "${file("${path.cwd}/${var.private_key_path}")}"
-//  }
-//
-//  provisioner "file" {
-//    source = "${path.cwd}/${var.master_files}"
-//    destination = "/srv"
-//  }
 }
 
 resource "aws_eip" "salt-master-eip" {
