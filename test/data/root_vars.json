@@ -18,7 +18,8 @@
 
   "tsplk_formula_version": "master",
 
-  "master_files": "../test/data",
+  "master_files": {},
+  "master_file_names": {},
 
   "platforms": {
     "0": "windows-2012-r2"

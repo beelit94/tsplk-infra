@@ -14,8 +14,6 @@ variable "atlas_token" {}
 //tsplk global info =============================
 variable "username" {}
 variable "project_name" {}
-// relative path of working folder
-variable "public_key_path" {}
 // rdp password of windows vm
 variable "rdp_password" {
   default = "win@ChangeThis"

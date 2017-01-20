@@ -46,16 +46,18 @@ resource "aws_instance" "salt_master" {
   user_data = "${data.template_file.master-user-data.rendered}"
   iam_instance_profile = "tsplk"
 
-  connection {
-    type = "ssh"
-    user = "ubuntu"
-    private_key = "${var.private_key_path}"
-  }
+  depends_on = ["aws_s3_bucket_object.pillar_data"]
 
-  provisioner "file" {
-    source = "${var.master_files}"
-    destination = "/srv"
-  }
+//  connection {
+//    type = "ssh"
+//    user = "ubuntu"
+//    private_key = "${file("${path.cwd}/${var.private_key_path}")}"
+//  }
+//
+//  provisioner "file" {
+//    source = "${path.cwd}/${var.master_files}"
+//    destination = "/srv"
+//  }
 }
 
 resource "aws_eip" "salt-master-eip" {
@@ -72,4 +74,13 @@ resource "aws_route53_record" "salt-master-record" {
   // matches up record N to instance N
 //  todo due to bug https://github.com/hashicorp/terraform/issues/3216
   records = ["ec2-${replace("${aws_eip.salt-master-eip.public_ip}", ".", "-")}.${var.aws_region}.compute.amazonaws.com"]
+}
+
+resource "aws_s3_bucket_object" "pillar_data" {
+  count = "${length(keys(var.master_files))}"
+//  todo this is hard code by using simple bucket to create the bucket we needed
+  bucket = "tsplk-bucket"
+  key = "base/${var.username}-${var.project_name}/${lookup(var.master_file_names, count.index)}"
+  source = "${path.cwd}/${lookup(var.master_files, count.index)}"
+  etag = "${md5(file("${lookup(var.master_files, count.index)}"))}"
 }
