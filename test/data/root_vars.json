@@ -14,14 +14,23 @@
   },
   "master_instance_type": "t2.small",
   "public_key_path": "../test/data/files/key_for_test.pub",
+  "private_key_path": "../test/data/files/id_rsa",
 
   "tsplk_formula_version": "master",
 
-  "master_files": {
-    "0": "../test/data/files/key_for_test.pub"
+  "master_files": {},
+  "master_file_names": {},
+
+  "platforms": {
+    "0": "windows-2012-r2"
   },
-  "master_file_names": {
-    "0": "files/key_for_test.pub"
+
+  "instance_types": {
+    "0": "m3.large"
+  },
+
+  "volume_sizes": {
+    "0": "50"
   }
 }
 

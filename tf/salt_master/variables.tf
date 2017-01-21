@@ -16,24 +16,18 @@ variable "username" {}
 variable "project_name" {}
 // relative path of working folder
 variable "public_key_path" {}
+
 variable "tsplk_formula_version" {
   default = "master"
 }
 
 // tsplk master info ===========================
 variable "master_instance_type" {}
-variable "master_files" {
-  // data file paths to sync to tsplk master,
-  // which sould be relative to working folder(project folder in tsplk)
-  type = "map"
-  default = {}
-}
-
 variable "master_file_names" {
-  // same as master_files, pass only name here
-  // todo json terraform dict problem
   type = "map"
-  default = {}
+}
+variable "master_files" {
+  type = "map"
 }
 
 // aws info ===================================

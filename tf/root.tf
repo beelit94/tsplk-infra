@@ -11,11 +11,11 @@ module "master" {
   public_key_path = "${var.public_key_path}"
   tsplk_formula_version = "${var.tsplk_formula_version}"
   master_instance_type = "${var.master_instance_type}"
-  master_files = "${var.master_files}"
-  master_file_names = "${var.master_file_names}"
   aws_zone_id = "${var.aws_zone_id}"
   aws_security_group_ids = "${var.aws_security_group_ids}"
   tsplk_bucket_name = "${var.tsplk_bucket_name}"
+  master_files = "${var.master_files}"
+  master_file_names = "${var.master_file_names}"
 }
 
 module "minion" {
@@ -25,7 +25,6 @@ module "minion" {
   aws_region = "${var.aws_region}"
   username = "${var.username}"
   project_name = "${var.project_name}"
-  public_key_path = "${var.public_key_path}"
   key_pair_name = "${module.master.key_pair_name}"
   master_record_name = "${module.master.master_record_name}"
   aws_zone_id = "${var.aws_zone_id}"

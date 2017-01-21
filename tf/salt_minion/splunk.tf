@@ -21,8 +21,10 @@ data "template_file" "user-data" {
   template = "${file("${path.module}/user_data/${lookup(var.user_data_map, lookup(var.platforms, count.index))}")}"
   count = "${length(keys(var.platforms))}"
   vars {
-//    todo should use public dns instead
-    salt_master_ip = "${var.master_record_name}.${data.aws_route53_zone.tsplk-zone.name}"
+    //  todo, this is really really tricky here since we pratically hard code the name
+    //but avoiding this could avoid waiting for data from salt master input
+    //make sure master dns format is 'user-project-saltmaster'
+    salt_master_ip = "${var.username}-${var.project_name}-saltmaster.${data.aws_route53_zone.tsplk-zone.name}"
     minion_id = "${var.username}-${var.project_name}-${count.index}"
     rdp_password = "${var.rdp_password}"
   }
@@ -40,7 +42,10 @@ resource "aws_instance" "splunk-instance" {
     Project = "${var.project_name}"
     Platform = "${lookup(var.platforms, count.index)}"
   }
-  key_name = "${var.key_pair_name}"
+//  todo, this is really really tricky here since we pratically hard code the name
+  //but avoiding this could avoid waiting for data from salt master input
+  //make sure the key name format is 'tsplk-user-project'
+  key_name = "tsplk-${var.username}-${var.project_name}"
 
   root_block_device {
     volume_size = "${lookup(var.volume_sizes, count.index)}"

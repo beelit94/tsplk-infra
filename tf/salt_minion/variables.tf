@@ -14,16 +14,14 @@ variable "atlas_token" {}
 //tsplk global info =============================
 variable "username" {}
 variable "project_name" {}
-// relative path of working folder
-variable "public_key_path" {}
 // rdp password of windows vm
 variable "rdp_password" {
   default = "win@ChangeThis"
 }
 
 // tsplk master info ===========================
-variable "master_record_name" {}
-variable "key_pair_name" {}
+//variable "master_record_name" {}
+//variable "key_pair_name" {}
 
 // tpslk minion info ===========================
 // number of minion id as key, platform as value.
