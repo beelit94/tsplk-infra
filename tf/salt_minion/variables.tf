@@ -20,8 +20,10 @@ variable "rdp_password" {
 }
 
 // tsplk master info ===========================
-//variable "master_record_name" {}
-//variable "key_pair_name" {}
+variable "master_record_name" {
+}
+variable "key_pair_name" {
+}
 
 // tpslk minion info ===========================
 // number of minion id as key, platform as value.
@@ -42,7 +44,7 @@ variable "instance_types" {
 
 // aws info ===================================
 // global info
-variable "aws_zone_id" {}
+variable "aws_zone_name" {}
 variable "aws_region" {
   default = "us-west-2"
 }

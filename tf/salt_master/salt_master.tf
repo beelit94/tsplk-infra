@@ -26,6 +26,10 @@ data "template_file" "master-user-data" {
   }
 }
 
+data "aws_route53_zone" "tsplk_zone" {
+  name = "${var.aws_zone_name}"
+}
+
 resource "aws_instance" "salt_master" {
   ami = "${data.atlas_artifact.salt_master.metadata_full.ami_id}"
   instance_type = "${var.master_instance_type}"
@@ -57,7 +61,7 @@ resource "aws_eip" "salt-master-eip" {
 
 resource "aws_route53_record" "salt-master-record" {
   // same number of records as instances
-  zone_id = "${var.aws_zone_id}"
+  zone_id = "${data.aws_route53_zone.tsplk_zone.zone_id}"
   // todo, beaware we hard code saltmaster name here
   name = "${var.username}-${var.project_name}-saltmaster"
   type = "CNAME"
