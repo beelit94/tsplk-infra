@@ -2,3 +2,4 @@
 /test/.cache
 id_rsa
 .terraform
+.dropbox
