@@ -5,5 +5,5 @@ wmic useraccount where "name='Administrator'" set PasswordExpires=FALSE
 
 <script>
 REM config minion
-python C:\\update_minion_conf.py --kv master=${salt_master_ip} --kv id=${minion_id} --kv log_level=debug
+C:\Python27\python.exe C:\\update_minion_conf.py --kv master=${salt_master_ip} --kv id=${minion_id} --kv log_level=debug
 </script>

@@ -32,7 +32,7 @@ variable "master_files" {
 
 // aws info ===================================
 // global info
-variable "aws_zone_id" {}
+variable "aws_zone_name" {}
 variable "aws_region" {
   default = "us-west-2"
 }
@@ -45,10 +45,3 @@ variable "tsplk_bucket_name" {
   default = "tsplk-bucket"
 }
 
-output "master_record_name"{
-  value = "${aws_route53_record.salt-master-record.name}"
-}
-
-output "key_pair_name"{
-  value = "${aws_key_pair.key.key_name}"
-}
