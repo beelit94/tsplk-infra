@@ -77,5 +77,5 @@ resource "aws_s3_bucket_object" "pillar_data" {
   bucket = "tsplk-bucket"
   key = "${var.username}-${var.project_name}/${lookup(var.master_file_names, count.index)}"
   source = "${path.cwd}/${lookup(var.master_files, count.index)}"
-  etag = "${md5(file("${lookup(var.master_files, count.index)}"))}"
+  etag = "${md5(file("${path.cwd}/${lookup(var.master_files, count.index)}"))}"
 }
