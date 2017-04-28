@@ -11,9 +11,6 @@
   "aws_security_group_ids": {
     "us-west-2": ["sg-2877344c"]
   },
-  "public_key_path": "data/key_for_test.pub",
-  "master_record_name": "",
-  "key_pair_name": "tsplk-testuser-testproject",
 
   "platforms": {
     "0": "windows-2012-r2"

@@ -26,6 +26,10 @@ data "template_file" "master-user-data" {
   }
 }
 
+data "aws_route53_zone" "tsplk_zone" {
+  name = "${var.aws_zone_name}"
+}
+
 resource "aws_instance" "salt_master" {
   ami = "${data.atlas_artifact.salt_master.metadata_full.ami_id}"
   instance_type = "${var.master_instance_type}"
@@ -35,7 +39,6 @@ resource "aws_instance" "salt_master" {
     User = "${var.username}"
     Project = "${var.project_name}"
   }
-  depends_on = ["aws_s3_bucket_object.pillar_data"]
 
   key_name = "${aws_key_pair.key.key_name}"
 
@@ -46,6 +49,9 @@ resource "aws_instance" "salt_master" {
 
   user_data = "${data.template_file.master-user-data.rendered}"
   iam_instance_profile = "tsplk"
+
+  depends_on = ["aws_s3_bucket_object.pillar_data"]
+
 }
 
 resource "aws_eip" "salt-master-eip" {
@@ -55,8 +61,9 @@ resource "aws_eip" "salt-master-eip" {
 
 resource "aws_route53_record" "salt-master-record" {
   // same number of records as instances
-  zone_id = "${var.aws_zone_id}"
-  name = "${var.username}-${var.project_name}-salt-master"
+  zone_id = "${data.aws_route53_zone.tsplk_zone.zone_id}"
+  // todo, beaware we hard code saltmaster name here
+  name = "${var.username}-${var.project_name}-saltmaster"
   type = "CNAME"
   ttl = "300"
   // matches up record N to instance N
@@ -67,8 +74,8 @@ resource "aws_route53_record" "salt-master-record" {
 resource "aws_s3_bucket_object" "pillar_data" {
   count = "${length(keys(var.master_files))}"
 //  todo this is hard code by using simple bucket to create the bucket we needed
-  bucket = "tsplk-${var.username}"
-  key = "base/${var.project_name}/${lookup(var.master_file_names, count.index)}"
+  bucket = "tsplk-bucket"
+  key = "${var.username}-${var.project_name}/${lookup(var.master_file_names, count.index)}"
   source = "${path.cwd}/${lookup(var.master_files, count.index)}"
-  etag = "${md5(file("${lookup(var.master_files, count.index)}"))}"
+  etag = "${md5(file("${path.cwd}/${lookup(var.master_files, count.index)}"))}"
 }

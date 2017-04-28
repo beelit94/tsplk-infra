@@ -27,17 +27,10 @@ variable "tsplk_formula_version" {
 // tsplk master info ===========================
 variable "master_instance_type" {}
 variable "master_files" {
-  // data file paths to sync to tsplk master,
-  // which sould be relative to working folder(project folder in tsplk)
   type = "map"
-  default = {}
 }
-
 variable "master_file_names" {
-  // same as master_files, pass only name here
-  // todo json terraform dict problem
   type = "map"
-  default = {}
 }
 
 // tpslk minion info ===========================
@@ -61,7 +54,7 @@ variable "instance_types" {
 // global info
 variable "access_key" {}
 variable "secret_key" {}
-variable "aws_zone_id" {}
+variable "aws_zone_name" {}
 variable "aws_region" {
   default = "us-west-2"
 }

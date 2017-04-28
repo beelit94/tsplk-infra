@@ -7,7 +7,7 @@ provider "aws" {
 }
 
 data "aws_route53_zone" "tsplk-zone" {
-  zone_id = "${var.aws_zone_id}"
+  name = "${var.aws_zone_name}"
 }
 
 data "atlas_artifact" "tsplk-artifact" {
@@ -21,8 +21,10 @@ data "template_file" "user-data" {
   template = "${file("${path.module}/user_data/${lookup(var.user_data_map, lookup(var.platforms, count.index))}")}"
   count = "${length(keys(var.platforms))}"
   vars {
-//    todo should use public dns instead
-    salt_master_ip = "${var.master_record_name}.${data.aws_route53_zone.tsplk-zone.name}"
+    //  todo, this is really really tricky here since we pratically hard code the name
+    //but avoiding this could avoid waiting for data from salt master input
+    //make sure master dns format is 'user-project-saltmaster'
+    salt_master_ip = "${var.master_record_name}"
     minion_id = "${var.username}-${var.project_name}-${count.index}"
     rdp_password = "${var.rdp_password}"
   }
@@ -40,6 +42,9 @@ resource "aws_instance" "splunk-instance" {
     Project = "${var.project_name}"
     Platform = "${lookup(var.platforms, count.index)}"
   }
+//  todo, this is really really tricky here since we pratically hard code the name
+  //but avoiding this could avoid waiting for data from salt master input
+  //make sure the key name format is 'tsplk-user-project'
   key_name = "${var.key_pair_name}"
 
   root_block_device {
@@ -58,7 +63,7 @@ resource "aws_eip" "eip" {
 resource "aws_route53_record" "splunk-instance-record" {
   // same number of records as instances
   count = "${length(keys(var.platforms))}"
-  zone_id = "${var.aws_zone_id}"
+  zone_id = "${data.aws_route53_zone.tsplk-zone.zone_id}"
   name = "${var.username}-${var.project_name}-${count.index}"
   type = "CNAME"
   ttl = "300"
@@ -67,4 +72,5 @@ resource "aws_route53_record" "splunk-instance-record" {
   // due to bug https://github.com/hashicorp/terraform/issues/3216
   // should be directly refer to aws_instance public dns directly
   records = ["ec2-${replace("${element(aws_eip.eip.*.public_ip, count.index)}", ".", "-")}.${var.aws_region}.compute.amazonaws.com"]
+//  records = ["${element(aws_instance.splunk-instance.*.public_dns, count.index)}"]
 }
