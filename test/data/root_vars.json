@@ -6,8 +6,8 @@
     "salt-master": "latest"
   },
   "aws_region": "us-west-2",
-  "username": "tu",
-  "project_name": "tp",
+  "username": "test-user",
+  "project_name": "test-project",
   "aws_zone_name": "tsplk.cc.",
   "aws_security_group_ids": {
     "us-west-2": ["sg-2877344c"]
