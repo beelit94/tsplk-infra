@@ -17,7 +17,7 @@ salt-call \
     --log-file-level=warning \
     --file-root=/srv/tsplk-formula/salt \
     --local \
-    state.apply tsplk-master-bootstrap \
+    state.apply tsplk-master-config \
     pillar='{"tsplk": {"user": "${user}", "project": "${project}"}}'
 
 # use /etc/minion as configuration and it's pillar data to run
