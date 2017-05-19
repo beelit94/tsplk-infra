@@ -20,13 +20,11 @@ salt-call \
     state.apply tsplk-master-bootstrap \
     pillar='{"tsplk": {"user": "${user}", "project": "${project}"}}'
 
-# terraform version, hash
-# tsplk user, project, bucket_name
+# use /etc/minion as configuration and it's pillar data to run
 # spin-up minion, provisioning, sending message, after master is configured
 salt-call \
     --log-file=/var/log/tsplk.log \
     --log-file-level=warning \
     --file-root=/srv/tsplk-formula/salt \
     --local \
-    state.apply tsplk-run \
-    pillar='{"tsplk": {"user": "${user}", "project": "${project}", "bucket-name": "${bucket-name}"}}'
+    state.apply tsplk-run
