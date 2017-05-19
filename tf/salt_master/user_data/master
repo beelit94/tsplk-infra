@@ -2,11 +2,29 @@
 # todo no use for now, don't know why
 chown -R ubuntu /etc/salt /var/cache/salt /var/log/salt /var/run/salt /srv /etc/salt/pki
 
-repo_path=/srv/tsplk-formula
-script_path=/script/master-bootstrap.sh
-# git clone
-git clone https://github.com/splksusqa/tsplk-formula.git ${repo_path}
+# sync formula itself first
+salt-call \
+    --log-file=/var/log/tsplk.log \
+    --log-file-level=warning \
+    --file-root=/srv/tsplk-formula/salt \
+    --local \
+    state.apply tsplk-formula \
+    pillar='{"tsplk": {"tsplk-formula": {"version": "${tsplk_formula_version}"}}}'
 
-# run script
-chmod +x ${repo_path}${script_path}
-source ${repo_path}${script_path}
+# config salt master with latest tsplk-formula
+salt-call \
+    --log-file=/var/log/tsplk.log \
+    --log-file-level=warning \
+    --file-root=/srv/tsplk-formula/salt \
+    --local \
+    state.apply tsplk-master-config \
+    pillar='{"tsplk": {"user": "${user}", "project": "${project}"}}'
+
+# use /etc/minion as configuration and it's pillar data to run
+# spin-up minion, provisioning, sending message, after master is configured
+salt-call \
+    --log-file=/var/log/tsplk.log \
+    --log-file-level=warning \
+    --file-root=/srv/tsplk-formula/salt \
+    --local \
+    state.apply tsplk-run
