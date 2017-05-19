@@ -35,3 +35,11 @@ module "minion" {
   rdp_password = "${var.rdp_password}"
   user_data_map = "${var.user_data_map}"
 }
+
+terraform {
+  required_version = ">= 0.9.5"
+  backend "s3" {
+    bucket = "tsplk-bucket"
+    region = "us-west-2"
+  }
+}

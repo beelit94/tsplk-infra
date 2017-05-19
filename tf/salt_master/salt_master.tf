@@ -23,6 +23,7 @@ data "template_file" "master-user-data" {
     user = "${var.username}"
     project = "${var.project_name}"
     tsplk_formula_version = "${var.tsplk_formula_version}"
+    bucket-name = "${var.tsplk_bucket_name}"
   }
 }
 
@@ -74,7 +75,7 @@ resource "aws_route53_record" "salt-master-record" {
 resource "aws_s3_bucket_object" "pillar_data" {
   count = "${length(keys(var.master_files))}"
 //  todo this is hard code by using simple bucket to create the bucket we needed
-  bucket = "tsplk-bucket"
+  bucket = "${var.tsplk_bucket_name}"
   key = "${var.username}-${var.project_name}/${lookup(var.master_file_names, count.index)}"
   source = "${path.cwd}/${lookup(var.master_files, count.index)}"
   etag = "${md5(file("${path.cwd}/${lookup(var.master_files, count.index)}"))}"
