@@ -18,6 +18,7 @@ salt-call --local pillar.items
 salt-call \
     -l debug \
     --file-root=/srv/tsplk-formula/salt \
+    --pillar-root=/srv/pillar \
     --id=tsplk-master-bootstrap \
     --local \
     state.highstate
