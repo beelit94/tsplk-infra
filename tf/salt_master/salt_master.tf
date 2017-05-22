@@ -23,7 +23,7 @@ data "template_file" "master-user-data" {
     user = "${var.username}"
     project = "${var.project_name}"
     tsplk_formula_version = "${var.tsplk_formula_version}"
-    bucket-name = "${var.tsplk_bucket_name}"
+    bucket_name = "${var.tsplk_bucket_name}"
   }
 }
 
@@ -32,7 +32,7 @@ data "aws_route53_zone" "tsplk_zone" {
 }
 
 resource "aws_instance" "salt_master" {
-  ami = "${data.atlas_artifact.salt_master.metadata_full.ami_id}"
+  ami = "${data.atlas_artifact.salt_master.metadata_full.region-us-west-2}"
   instance_type = "${var.master_instance_type}"
   vpc_security_group_ids = "${var.aws_security_group_ids[var.aws_region]}"
   tags {
