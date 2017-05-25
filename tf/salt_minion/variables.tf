@@ -56,9 +56,9 @@ variable "aws_security_group_ids" {
 variable "user_data_map" {
   type = "map"
   default = {
-    "ubuntu-1404" = "linux",
-    "windows-2008-r2" = "windows",
-    "windows-2012-r2" = "windows",
+    "ubuntu_1404" = "linux",
+    "windows_2008_r2" = "windows",
+    "windows_2012_r2" = "windows",
   }
 }
 
