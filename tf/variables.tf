@@ -2,10 +2,10 @@
 variable "atlas_version" {
   type = "map"
   default = {
-    "ubuntu-1404" = "latest"
-    "windows-2008-r2" = "latest"
-    "windows-2012-r2" = "latest"
-    "salt-master" = "latest"
+    "ubuntu_1404" = "latest"
+    "windows_2008_r2" = "latest"
+    "windows_2012_r2" = "latest"
+    "salt_master" = "latest"
   }
 }
 variable "atlas_token" {}
