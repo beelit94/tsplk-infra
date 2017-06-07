@@ -11,7 +11,7 @@ data "aws_route53_zone" "tsplk-zone" {
 }
 
 data "atlas_artifact" "tsplk-artifact" {
-  name = "${lookup(var.atlas_artifact_map, lookup(var.platforms, count.index))}"
+  name = "splunk-sus-qa/${replace(lookup(var.platforms, count.index), "-", "_")}"
   type = "amazon.ami"
   version = "${var.atlas_version["${lookup(var.platforms, count.index)}"]}"
   count = "${length(keys(var.platforms))}"
