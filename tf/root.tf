@@ -29,7 +29,7 @@ module "minion" {
   # same as local path, which is not ideal for now
   key_pair_name = "tsplk-${var.username}-${var.project_name}"
   # same here, ${module.master.master_record_name}
-  master_record_name = "${var.username}-${var.project_name}-saltmaster${var.aws_zone_name}"
+  master_record_name = "${var.username}-${var.project_name}-saltmaster.${var.aws_zone_name}"
   aws_zone_name = "${var.aws_zone_name}"
   aws_security_group_ids = "${var.aws_security_group_ids}"
   platforms = "${var.platforms}"
