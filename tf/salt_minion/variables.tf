@@ -60,3 +60,11 @@ variable "user_data_map" {
   }
 }
 
+variable "atlas_artifact_map"{
+  type = "map"
+  default = {
+    "ubuntu_1404" = "splunk-sus-qa/ubuntu-1404",
+    "windows_2008_r2" = "splunk-sus-qa/windows-2008-r2",
+    "windows_2012_r2" = "splunk-sus-qa/windows-2012-r2"
+  }
+}
