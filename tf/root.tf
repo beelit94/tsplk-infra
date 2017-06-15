@@ -42,7 +42,7 @@ module "minion" {
 terraform {
   required_version = ">= 0.9.5"
   backend "s3" {
-    bucket = "tsplk-bucket"
-    region = "us-west-2"
+    bucket = "${var.tsplk_bucket_name}"
+    region = "${var.aws_region}"
   }
 }
