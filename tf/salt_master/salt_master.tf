@@ -9,7 +9,7 @@ provider "atlas" {
 data "atlas_artifact" "salt_master" {
   name = "splunk-sus-qa/ubuntu-1404-saltmaster"
   type = "amazon.ami"
-  version = "${var.atlas_version["salt-master"]}"
+  version = "${var.atlas_version["salt_master"]}"
 }
 
 resource "aws_key_pair" "key" {
