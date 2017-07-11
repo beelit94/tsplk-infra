@@ -22,7 +22,6 @@ data "template_file" "master-user-data" {
   vars {
     user = "${var.username}"
     project = "${var.project_name}"
-    tsplk_formula_version = "${var.tsplk_formula_version}"
     bucket_name = "${var.tsplk_bucket_name}"
   }
 }

@@ -2,16 +2,17 @@
 # todo no use for now, don't know why
 chown -R ubuntu /etc/salt /var/cache/salt /var/log/salt /var/run/salt /srv /etc/salt/pki
 
+# sync pillar data
+aws s3 sync s3://${bucket_name}/${user}-${project} /srv/pillar
+
 # sync formula itself first
 salt-call \
     -l debug \
     --file-root=/srv/tsplk-formula/salt \
     --local \
+    --pillar-root=/srv/pillar \
     state.apply tsplk-formula \
-    pillar='{"tsplk": {"tsplk-formula": {"version": "${tsplk_formula_version}"}}}'
 
-# sync pillar data
-aws s3 sync s3://${bucket_name}/${user}-${project} /srv/pillar
 # show pillar data for debugging
 salt-call --local pillar.items
 # run high state

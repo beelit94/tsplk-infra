@@ -9,7 +9,6 @@ module "master" {
   username = "${var.username}"
   project_name = "${var.project_name}"
   public_key_path = "${var.public_key_path}"
-  tsplk_formula_version = "${var.tsplk_formula_version}"
   master_instance_type = "${var.master_instance_type}"
   aws_zone_name = "${var.aws_zone_name}"
   aws_security_group_ids = "${var.aws_security_group_ids}"

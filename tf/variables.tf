@@ -29,10 +29,6 @@ variable "rdp_password" {
   default = "win@ChangeThis"
 }
 
-variable "tsplk_formula_version" {
-  default = "master"
-}
-
 // tsplk master info ===========================
 variable "master_instance_type" {}
 
