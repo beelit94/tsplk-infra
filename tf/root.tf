@@ -1,6 +1,3 @@
-
-
-
 module "master" {
   source = "./salt_master"
   atlas_version = "${var.atlas_version}"
@@ -37,12 +34,4 @@ module "minion" {
   instance_types = "${var.instance_types}"
   rdp_password = "${var.rdp_password}"
   user_data_map = "${var.user_data_map}"
-}
-
-terraform {
-  required_version = ">= 0.9.5"
-  backend "s3" {
-    bucket = "tsplk-bucket"
-    region = "us-west-2"
-  }
 }
