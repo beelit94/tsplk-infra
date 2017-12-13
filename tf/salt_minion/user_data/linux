@@ -1,2 +1,3 @@
 #!/bin/bash
 python /opt/update_minion_conf.py --kv master=${salt_master_ip} --kv id=${minion_id} --kv log_level=debug
+hostnamectl set-hostname ${minion_id}
