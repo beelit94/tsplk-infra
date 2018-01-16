@@ -12,6 +12,8 @@ module "master" {
   tsplk_bucket_name = "${var.tsplk_bucket_name}"
   master_files = "${var.master_files}"
   master_file_names = "${var.master_file_names}"
+  access_key = "${var.aws_access_key}"
+  secret_key = "${var.aws_secret_key}"
 }
 
 module "minion" {
@@ -33,4 +35,6 @@ module "minion" {
   instance_types = "${var.instance_types}"
   rdp_password = "${var.rdp_password}"
   user_data_map = "${var.user_data_map}"
+  access_key = "${var.aws_access_key}"
+  secret_key = "${var.aws_secret_key}"
 }
