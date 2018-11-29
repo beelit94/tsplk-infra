@@ -1,20 +1,9 @@
-provider "atlas" {
-  token = "${var.atlas_token}"
-}
-
 provider "aws" {
   region = "${var.aws_region}"
 }
 
 data "aws_route53_zone" "tsplk-zone" {
   name = "${var.aws_zone_name}"
-}
-
-data "atlas_artifact" "tsplk-artifact" {
-  name = "splunk-sus-qa/${replace(lookup(var.platforms, count.index), "_", "-")}"
-  type = "amazon.ami"
-  version = "${var.atlas_version["${lookup(var.platforms, count.index)}"]}"
-  count = "${length(keys(var.platforms))}"
 }
 
 data "template_file" "user-data" {
@@ -32,7 +21,7 @@ data "template_file" "user-data" {
 
 resource "aws_instance" "splunk-instance" {
 //  todo change this to region changable
-  ami = "${element(data.atlas_artifact.tsplk-artifact.*.metadata_full.region-us-west-2, count.index)}"
+  ami = "${var.amis["${lookup(var.platforms, count.index)}"]}"
   instance_type = "${lookup(var.instance_types, count.index)}"
   vpc_security_group_ids = "${var.aws_security_group_ids[var.aws_region]}"
   count = "${length(keys(var.platforms))}"

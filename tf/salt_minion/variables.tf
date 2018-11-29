@@ -59,3 +59,13 @@ variable "user_data_map" {
     "windows_2012_r2" = "windows",
   }
 }
+
+variable "amis" {
+  type = "map"
+  default = {
+    "ubuntu_1404" = "ami-cb07f4b3"
+    "windows_2008_r2" = "ami-69e73a11"
+    "windows_2012_r2" = "ami-0ccd7c6c"
+    "salt_master" = "ami-bb4052c2"
+  }
+}

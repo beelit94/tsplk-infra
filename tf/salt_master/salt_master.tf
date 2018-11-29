@@ -2,16 +2,6 @@ provider "aws" {
   region = "${var.aws_region}"
 }
 
-provider "atlas" {
-  token = "${var.atlas_token}"
-}
-
-data "atlas_artifact" "salt_master" {
-  name = "splunk-sus-qa/ubuntu-1404-saltmaster"
-  type = "amazon.ami"
-  version = "${var.atlas_version["salt_master"]}"
-}
-
 resource "aws_key_pair" "key" {
   key_name = "tsplk-${var.username}-${var.project_name}"
   public_key = "${file("${path.cwd}/${var.public_key_path}")}"
@@ -31,7 +21,7 @@ data "aws_route53_zone" "tsplk_zone" {
 }
 
 resource "aws_instance" "salt_master" {
-  ami = "${data.atlas_artifact.salt_master.metadata_full.region-us-west-2}"
+  ami = "${var.amis["salt_master"]}"
   instance_type = "${var.master_instance_type}"
   vpc_security_group_ids = "${var.aws_security_group_ids[var.aws_region]}"
   tags {
